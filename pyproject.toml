@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "barista-transport"
-version = "0.1.0"
+version = "0.2.0"
 description = "BARISTA — BARrier Inference of Sequential, Tunnelling & Activated transport: identify the charge-transport mechanism across thin barriers from I(V, T, d) data"
 readme = "README.md"
 license = { text = "MIT" }
@@ -18,7 +18,9 @@ classifiers = ["Programming Language :: Python :: 3", "Topic :: Scientific/Engin
 [project.optional-dependencies]
 gui = ["streamlit>=1.30"]
 formats = ["h5py", "pyarrow", "xlrd", "odfpy"]
-all = ["streamlit>=1.30", "h5py", "pyarrow", "xlrd", "odfpy"]
+paper = ["pdfplumber>=0.10", "pymupdf>=1.23", "opencv-python-headless>=4.8", "pillow"]
+all = ["streamlit>=1.30", "h5py", "pyarrow", "xlrd", "odfpy", "pdfplumber>=0.10", "pymupdf>=1.23",
+       "opencv-python-headless>=4.8", "pillow", "tabulate"]
 dev = ["pytest"]
 
 [project.scripts]

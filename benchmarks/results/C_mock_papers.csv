@@ -1,0 +1,11 @@
+hidden,figure,claim_read_from_text,BARISTA,agreement
+Poole–Frenkel emission,vector,Poole–Frenkel emission,Poole–Frenkel emission,AGREES
+Poole–Frenkel emission,raster,Poole–Frenkel emission,SCLC with a discrete trap level,DISAGREES
+Schottky emission,vector,Schottky emission,Schottky emission,AGREES
+Schottky emission,raster,Schottky emission,Schottky emission,AGREES
+Coherent tunnelling (direct/FN),vector,Coherent tunnelling (direct/FN),Coherent tunnelling (direct/FN),AGREES
+Coherent tunnelling (direct/FN),raster,Coherent tunnelling (direct/FN),Coherent tunnelling (direct/FN),"CONSISTENT, BUT DATA CANNOT DECIDE"
+Nearest-neighbour / ionic hopping,vector,Nearest-neighbour / ionic hopping,Nearest-neighbour / ionic hopping,AGREES
+Nearest-neighbour / ionic hopping,raster,Nearest-neighbour / ionic hopping,Nearest-neighbour / ionic hopping,AGREES
+SCLC with a discrete trap level,vector,SCLC with a discrete trap level,SCLC with a discrete trap level,AGREES
+SCLC with a discrete trap level,raster,SCLC with a discrete trap level,SCLC with a discrete trap level,"CONSISTENT, BUT DATA CANNOT DECIDE"

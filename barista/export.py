@@ -136,6 +136,44 @@ def tables(res):
             "points_where_A_matters_%": round(100 * c["share_a"], 1),
             "points_where_B_matters_%": round(100 * c["share_b"], 1),
             **{f"p:{k}": v for k, v in c["fit"].params.items()}} for c in res.combos])
+    cert = getattr(res, "certainty", None)
+    if cert is not None:
+        out["Certainty summary"] = pd.DataFrame([("grade", cert.grade), ("summary", cert.summary),
+                                                 ("bootstrap replicates", cert.B), ("workers", cert.workers),
+                                                 ("runtime (s)", round(cert.timing, 1))] +
+                                                [("note", n) for n in cert.notes], columns=["item", "value"])
+        out["Selection probability"] = pd.DataFrame([{
+            "model": k, "bootstrap_wins": v["wins"], "P_selected": v["freq"], "P_95CI_low": v["ci_lo"],
+            "P_95CI_high": v["ci_hi"], "akaike_weight_full": cert.akaike[k]["weight"],
+            "akaike_weight_boot_mean": cert.akaike[k]["boot_mean"], "akaike_weight_boot_2.5%": cert.akaike[k]["boot_lo"],
+            "akaike_weight_boot_97.5%": cert.akaike[k]["boot_hi"], "BIC_posterior": cert.bic_posterior[k],
+            "evidence_ratio_assigned_vs_model": cert.evidence_ratio[k]} for k, v in cert.selection.items()])
+        rows = []
+        for pn, r in cert.params.items():
+            g = lambda key, i: (r.get(key) or [np.nan, np.nan])[i]
+            rows.append({"parameter": pn, "estimate": r["estimate"], "SE_asymptotic": r["se_asymptotic"],
+                         "asym_68_lo": g("asym68", 0), "asym_68_hi": g("asym68", 1),
+                         "asym_95_lo": g("asym95", 0), "asym_95_hi": g("asym95", 1),
+                         "boot_median": r.get("boot_median"), "SE_bootstrap": r.get("boot_se"),
+                         "boot_68_lo": g("boot68", 0), "boot_68_hi": g("boot68", 1),
+                         "boot_95_lo": g("boot95", 0), "boot_95_hi": g("boot95", 1), "boot_bias": r.get("boot_bias"),
+                         "profile_68_lo": g("profile68", 0), "profile_68_hi": g("profile68", 1),
+                         "profile_95_lo": g("profile95", 0), "profile_95_hi": g("profile95", 1)})
+        out["Parameter confidence"] = pd.DataFrame(rows)
+        pl = []
+        for pn, pr in cert.profile.items():
+            for gv, dc in zip(pr["grid"], pr["dchi2"]):
+                pl.append({"parameter": pn, "value": gv, "delta_chi2": dc})
+        out["Profile likelihood"] = pd.DataFrame(pl)
+        out["Window stability"] = pd.DataFrame(cert.windows)
+        out["Vuong tests"] = pd.DataFrame([{"alternative": k, **v} for k, v in cert.vuong.items()])
+        out["Residual diagnostics"] = pd.DataFrame([{k: v for k, v in cert.residuals.items() if k != "residuals"}])
+        if cert.lrt:
+            out["Two-channel LRT"] = pd.DataFrame([cert.lrt])
+        bs = cert.boot_samples.get(cert.assigned_key, {})
+        if bs:
+            L = min(len(v) for v in bs.values())
+            out["Bootstrap samples"] = pd.DataFrame({k: v[:L] for k, v in bs.items()})
     out["Recommendations"] = pd.DataFrame({"next measurement": res.recommendations})
     out["Warnings"] = pd.DataFrame({"warning": res.warnings})
     out["Device inputs"] = pd.DataFrame(list(dev.provided().items()), columns=["input", "value"])
@@ -166,6 +204,10 @@ def html_report(res, figs: dict, tabs: dict, path: str):
         "fig5_regime_map": "Sub-regime (or channel fraction) of the assigned model across bias and temperature.",
         "fig6_prediction": "Model prediction outside the measured window (dashed): a falsifiable forecast.",
         "fig7_mixed_fit": "Best two-channel description.",
+        "fig8_model_certainty": "(a) Probability that each mechanism is selected in the stratified bootstrap (Wilson 95 % intervals); (b) Akaike weights.",
+        "fig9_parameter_uncertainty": "Bootstrap distributions and correlations of the extracted parameters with bootstrap and profile-likelihood 95 % intervals.",
+        "fig10_profile_likelihood": "Profile likelihood of each parameter; Δχ² = 1 and 3.84 give the 68 % and 95 % intervals.",
+        "fig11_stability_residuals": "(a) Parameter shifts when the fit window is changed, in units of σ; (b) normal quantile plot of the residuals.",
     }
     for k, paths in figs.items():
         png = [p for p in paths if p.endswith(".png")]
@@ -178,6 +220,18 @@ def html_report(res, figs: dict, tabs: dict, path: str):
     par_rows = "".join(f"<tr><td>{esc(r['symbol'])}</td><td>{esc(r['value_str'])}</td><td>{esc(r['description'])}</td>"
                        f"<td>{'⚠ correlated' if r['degenerate'] else ''}</td></tr>" for r in rows)
     rec = "".join(f"<li>{esc(r)}</li>" for r in res.recommendations)
+    cert = getattr(res, "certainty", None)
+    cert_html = ""
+    if cert is not None:
+        cert_html = (f"<h2>How certain is this? — {esc(cert.grade)}</h2><div class='card'>{esc(cert.summary)}"
+                     + "".join(f"<br/>• {esc(n)}" for n in cert.notes) + "</div>"
+                     + "<h3>Probability that each mechanism is selected (stratified bootstrap)</h3><div class='scroll'>"
+                     + table(tabs["Selection probability"]) + "</div>"
+                     + "<h3>Confidence intervals of the extracted parameters</h3><div class='scroll'>"
+                     + table(tabs["Parameter confidence"]) + "</div>"
+                     + "<h3>Fit-window stability</h3><div class='scroll'>" + table(tabs["Window stability"]) + "</div>"
+                     + "<h3>Non-nested model tests (Vuong)</h3><div class='scroll'>" + table(tabs["Vuong tests"]) + "</div>"
+                     + "<h3>Residual diagnostics</h3><div class='scroll'>" + table(tabs["Residual diagnostics"]) + "</div>")
     warn = "".join(f"<li>{esc(w)}</li>" for w in res.warnings)
     badge = {"IDENTIFIED": "#1baf7a", "MOST LIKELY": "#2a78d6"}.get(res.confidence.split(" (")[0], "#eda100")
     doc = f"""<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/>
@@ -209,6 +263,7 @@ BARISTA {__version__} · {_dt.datetime.now().strftime('%Y-%m-%d %H:%M')}</div>
 <div class="card"><b>Fingerprints</b><ul class="ev">{ev_rows or '<li>none</li>'}</ul>
 <b>Physical plausibility of the fitted parameters</b><ul class="ev">{ck_rows or '<li>none</li>'}</ul></div>
 <h2>Figures</h2>{figs_html}
+{cert_html}
 <h2>Model comparison</h2><div class="scroll">{table(tabs['Model comparison'][['rank','mechanism','verdict','relative_support_%','delta_AIC','k_identifiable','rms_%','cv_rms_%','plausibility_fails']])}</div>
 {('<h2>Two-channel models</h2><div class="scroll">' + table(tabs['Two-channel models'].iloc[:, :5]) + '</div>') if 'Two-channel models' in tabs else ''}
 <h2>Recommended next measurements</h2><ul>{rec or '<li>none</li>'}</ul>
@@ -234,6 +289,9 @@ def export_all(res, outdir, style: Style = None, formats=None):
             if f.startswith("fig"):
                 os.remove(os.path.join(figdir, f))
     figs = make_all(res, figdir, style)
+    if getattr(res, "certainty", None) is not None:
+        from .plots import make_certainty_figs
+        figs.update(make_certainty_figs(res, res.certainty, figdir, style))
     paths["figures"] = figs
     tabs = tables(res)
     tdir = os.path.join(outdir, "tables")
@@ -270,6 +328,8 @@ def export_all(res, outdir, style: Style = None, formats=None):
         "coverage": res.diag["coverage"],
         "fingerprints": {k: v for k, v in res.diag.items() if k not in ("gamma", "linearisations")},
         "timing_s": res.timing,
+        "certainty": None if getattr(res, "certainty", None) is None else
+        {k: v for k, v in res.certainty.as_dict().items() if k not in ("boot_samples",)},
     }
     jp = os.path.join(outdir, "results.json")
     with open(jp, "w") as fh:

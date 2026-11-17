@@ -761,3 +761,185 @@ def make_all(res, outdir, style: Style = None):
     elif res.mixed:
         out["fig7_best_single_fit"] = fig_iv_fit(res, style, outdir, key=res.best.key, name="fig7_best_single_fit")
     return out
+
+
+# ---------------------------------------------------------------------------
+# Certainty figures (uncertainty analytics)
+# ---------------------------------------------------------------------------
+def _pretty(pname):
+    from .report_text import SYMBOLS
+    base = pname.split(".")[-1]
+    tex = SYMBOLS.get(base, (base, base.replace("_", r"\_"), "", "", None))[1]
+    unit = SYMBOLS.get(base, (None, None, "", "", None))[3]
+    ch = f" ({pname[0].upper()})" if pname.startswith(("a.", "b.")) else ""
+    return rf"${tex}${ch}" + (f" ({unit})" if unit else "")
+
+
+def fig_certainty(res, cert, style, outdir, name="fig8_model_certainty"):
+    keys = sorted(cert.candidates, key=lambda k: -cert.selection[k]["freq"])
+    lab = [SHORT.get(k, " ∥ ".join(SHORT.get(x, x) for x in k.split("+"))) for k in keys]
+    with style.ctx():
+        fig, axes = plt.subplots(1, 2, figsize=(style.double, 2.6))
+        ax = axes[0]
+        f = np.array([cert.selection[k]["freq"] for k in keys])
+        lo = np.array([cert.selection[k]["ci_lo"] for k in keys]); hi = np.array([cert.selection[k]["ci_hi"] for k in keys])
+        y = np.arange(len(keys))
+        cols = [ACCENT if k == cert.assigned_key else OTHER for k in keys]
+        ax.barh(y, 100 * f, color=cols, height=0.6)
+        ax.errorbar(100 * f, y, xerr=[np.clip(100 * (f - lo), 0, None), np.clip(100 * (hi - f), 0, None)], fmt="none", ecolor=INK, elinewidth=0.6,
+                    capsize=1.5)
+        ax.set_yticks(y); ax.set_yticklabels(lab, fontsize=style.fs - 2)
+        ax.tick_params(axis="y", which="both", left=False, right=False)
+        ax.invert_yaxis(); ax.set_xlim(0, 105)
+        ax.set_xlabel(f"selected in bootstrap (%)   [B = {cert.B}]")
+        panel_label(ax, 0, style)
+        ax = axes[1]
+        data = []
+        for k in keys:
+            ak = cert.akaike[k]
+            data.append((ak["boot_lo"], ak["boot_mean"], ak["boot_hi"], ak["weight"]))
+        for i, (l, m, h, w) in enumerate(data):
+            ax.plot([l, h], [i, i], "-", color=INK2, lw=0.8)
+            ax.plot(m, i, "o", color=cols[i], ms=4)
+            ax.plot(w, i, "x", color=INK, ms=4, mew=0.8)
+        ax.set_yticks(y); ax.set_yticklabels([])
+        ax.tick_params(axis="y", which="both", left=False, right=False)
+        ax.invert_yaxis(); ax.set_xlim(-0.03, 1.03)
+        ax.set_xlabel("Akaike weight")
+        ax.plot([], [], "o", color=INK2, label="bootstrap mean (95 % range)")
+        ax.plot([], [], "x", color=INK, label="full data")
+        ax.legend(loc="lower right")
+        panel_label(ax, 1, style)
+        return _save(fig, outdir, name, style)
+
+
+def fig_param_corner(res, cert, style, outdir, name="fig9_parameter_uncertainty"):
+    smp = cert.boot_samples.get(cert.assigned_key, {})
+    pn = [p for p in cert.params if p in smp and len(smp[p]) >= 10][:4]
+    if not pn:
+        return []
+    k = len(pn)
+    w = style.single if k <= 2 else style.double * 0.8
+    with style.ctx():
+        fig, axes = plt.subplots(k, k, figsize=(w, w), squeeze=False)
+        for i in range(k):
+            for j in range(k):
+                ax = axes[i, j]
+                if j > i:
+                    ax.set_visible(False); continue
+                xi = smp[pn[j]]
+                if i == j:
+                    ax.hist(xi, bins=24, color="#c9dcf3", edgecolor=ACCENT, linewidth=0.5)
+                    row = cert.params[pn[i]]
+                    ax.axvline(row["estimate"], color=INK, lw=0.8)
+                    if row.get("boot95"):
+                        for v in row["boot95"]:
+                            ax.axvline(v, color=ACCENT, ls="--", lw=0.7)
+                    if row.get("profile95"):
+                        for v in row["profile95"][:2]:
+                            ax.axvline(v, color=C_FIT2, ls=":", lw=0.8)
+                    ax.set_yticks([])
+                    ax.tick_params(axis="y", which="both", left=False, right=False)
+                else:
+                    yi = smp[pn[i]]
+                    ax.plot(xi, yi, ".", color=ACCENT, ms=1.5, alpha=0.6)
+                if i == k - 1:
+                    ax.set_xlabel(_pretty(pn[j]))
+                else:
+                    ax.set_xticklabels([])
+                if j == 0 and i > 0:
+                    ax.set_ylabel(_pretty(pn[i]))
+                elif i != j:
+                    ax.set_yticklabels([])
+                ax.tick_params(labelsize=style.fs - 2.5)
+                ax.xaxis.get_offset_text().set_fontsize(style.fs - 3)
+        fig.legend(handles=[plt.Line2D([], [], color=INK, lw=0.8, label="estimate"),
+                            plt.Line2D([], [], color=ACCENT, ls="--", lw=0.7, label="bootstrap 95 %"),
+                            plt.Line2D([], [], color=C_FIT2, ls=":", lw=0.8, label="profile 95 %")],
+                   loc="outside upper center", ncol=3, fontsize=style.fs - 2)
+        return _save(fig, outdir, name, style)
+
+
+def fig_profiles(res, cert, style, outdir, name="fig10_profile_likelihood"):
+    pn = list(cert.profile)[:4]
+    if not pn:
+        return []
+    n = len(pn)
+    with style.ctx():
+        fig, axes = plt.subplots(1, n, figsize=(style.single if n == 1 else style.double, 2.2), squeeze=False)
+        for i, p in enumerate(pn):
+            ax = axes[0, i]
+            pr = cert.profile[p]
+            g = np.array(pr["grid"]); dc = np.array(pr["dchi2"])
+            ax.plot(g, dc, "o-", color=ACCENT, ms=2.5, lw=0.8)
+            ax.axhline(1.0, color=INK2, ls=":", lw=0.6); ax.axhline(3.84, color=INK2, ls="--", lw=0.6)
+            ax.text(g[-1], 1.0, " 68 %", va="bottom", ha="right", fontsize=style.fs - 2.5, color=INK2)
+            ax.text(g[-1], 3.84, " 95 %", va="bottom", ha="right", fontsize=style.fs - 2.5, color=INK2)
+            ax.set_ylim(0, max(6, min(np.nanmax(dc) * 1.05, 30)))
+            ax.set_xlabel(_pretty(p))
+            if i == 0:
+                ax.set_ylabel(r"$\Delta\chi^2$")
+            ax.xaxis.get_offset_text().set_fontsize(style.fs - 3)
+            panel_label(ax, i, style)
+        return _save(fig, outdir, name, style)
+
+
+def fig_stability(res, cert, style, outdir, name="fig11_stability_residuals"):
+    pn = list(cert.params)[:4]
+    with style.ctx():
+        fig, axes = plt.subplots(1, 2, figsize=(style.double, 2.7), gridspec_kw={"width_ratios": [1.4, 1]})
+        ax = axes[0]
+        W = cert.windows
+        y = np.arange(len(W))
+        pal = [ACCENT, C_FIT2, C_FIT3, "#6250d6"]
+        for j, p in enumerate(pn):
+            v0 = cert.params[p]["estimate"]; se0 = cert.params[p]["se_asymptotic"]
+            z, ze = [], []
+            for w in W:
+                e = w.get(p + "_err", np.nan)
+                tot = np.sqrt((se0 if np.isfinite(se0) else 0) ** 2 + (e if np.isfinite(e) else 0) ** 2)
+                z.append((w.get(p, np.nan) - v0) / tot if tot > 0 else np.nan)
+            ax.plot(z, y + (j - (len(pn) - 1) / 2) * 0.15, "o", color=pal[j % 4], ms=3.2, mfc="none", mew=0.8,
+                    label=_pretty(p))
+        ax.axvspan(-1, 1, color="#eef3fb", zorder=0); ax.axvline(0, color=INK, lw=0.6)
+        for xv in (-3, 3):
+            ax.axvline(xv, color=INK2, ls=":", lw=0.6)
+        ax.set_yticks(y); ax.set_yticklabels([w["subset"] for w in W], fontsize=style.fs - 2.5)
+        ax.tick_params(axis="y", which="both", left=False, right=False)
+        ax.invert_yaxis()
+        ax.set_xlabel(r"shift from full-data estimate ($\sigma$)")
+        ax.legend(loc="lower right", fontsize=style.fs - 2.5)
+        panel_label(ax, 0, style)
+        ax = axes[1]
+        r = np.array(cert.residuals["residuals"])
+        r = r[np.isfinite(r)]
+        osm, osr = stats_probplot(r)
+        ax.plot(osm, osr, ".", color=ACCENT, ms=2)
+        lim = [min(osm.min(), osr.min()), max(osm.max(), osr.max())]
+        ax.plot(lim, lim, "-", color=INK, lw=0.6)
+        ax.set_xlabel("normal quantile"); ax.set_ylabel(r"standardised residual of ln$I$")
+        ax.text(0.04, 0.96, f"Shapiro–Wilk p = {cert.residuals['shapiro_p']:.2g}\n"
+                            f"Durbin–Watson = {cert.residuals['durbin_watson_median']:.2f}",
+                transform=ax.transAxes, va="top", fontsize=style.fs - 2.5, color=INK)
+        panel_label(ax, 1, style)
+        return _save(fig, outdir, name, style)
+
+
+def stats_probplot(r):
+    from scipy import stats as _st
+    z = (r - np.mean(r)) / max(np.std(r), 1e-300)
+    (osm, osr), _ = _st.probplot(z, dist="norm")
+    return osm, osr
+
+
+def make_certainty_figs(res, cert, outdir, style):
+    out = {}
+    out["fig8_model_certainty"] = fig_certainty(res, cert, style, outdir)
+    p = fig_param_corner(res, cert, style, outdir)
+    if p:
+        out["fig9_parameter_uncertainty"] = p
+    p = fig_profiles(res, cert, style, outdir)
+    if p:
+        out["fig10_profile_likelihood"] = p
+    out["fig11_stability_residuals"] = fig_stability(res, cert, style, outdir)
+    return out

@@ -56,14 +56,17 @@ ROLE_ALIASES = {
     "J": ["j", "current_density", "jdens", "density", "jd"],
     "T": ["t", "temp", "temperature", "tk", "t_k", "tsample", "t_sample", "sample_temperature"],
     "d": ["d", "thickness", "thick", "t_nm", "d_nm", "barrier_thickness", "layer_thickness", "tox", "t_ox"],
-    "N": ["n_layers", "layers", "nlayers", "layer_number", "n_l"],
+    "N": ["n", "n_layers", "layers", "nlayers", "layer_number", "n_l", "number_of_layers"],
     "area": ["area", "a", "junction_area", "device_area"],
     "sweep": ["sweep", "direction", "sweep_dir"],
     "rate": ["rate", "sweep_rate", "ramp_rate"],
     "H": ["h", "b", "field", "magnetic_field", "bfield"],
     "gate": ["vg", "v_g", "gate", "vgate", "gate_voltage", "vgs"],
+    "state": ["state", "config", "configuration", "magnetic_state", "mag_state", "alignment", "neel", "spin_state"],
+    "angle": ["angle", "theta", "θ", "field_angle", "phi_h"],
+    "MR": ["mr", "tmr", "magnetoresistance", "gmr"],
     "time": ["time", "t_s", "timestamp", "elapsed", "elapsed_time", "seconds"],
-    "index": ["index", "idx", "point", "no", "n", "#", "num", "number", "unnamed_0", "point_number"],
+    "index": ["index", "idx", "point", "no", "#", "num", "number", "unnamed_0", "point_number"],
 }
 PREFIX_ROLES = [("curr", "I"), ("volt", "V"), ("bias", "V"), ("temp", "T"), ("thick", "d"),
                 ("dens", "J"), ("time", "time"), ("gate", "gate")]
@@ -280,7 +283,12 @@ def _grid_tables(grid, src: str, meta: dict):
             else:
                 default = ["V", "I", "T", "d"]
                 names = [default[k] if k < 4 else f"col{k}" for k in range(width)]
-            data = [[_to_float(c) for c in r] for r in block]
+            def _cell(c):
+                v = _to_float(c)
+                if v is not None:
+                    return v
+                return str(c).strip() if c not in (None, "") and str(c).strip() else None
+            data = [[_cell(c) for c in r] for r in block]
             df = pd.DataFrame(data, columns=names[:width] if len(names) >= width else
                               names + [f"col{k}" for k in range(len(names), width)])
             df = df.loc[:, df.notna().any()]
@@ -298,6 +306,10 @@ def _grid_tables(grid, src: str, meta: dict):
 
 def _sniff_split(lines):
     num_lines = [ln for ln in lines if re.search(r"\d", ln)][:200]
+    data_like = [ln for ln in num_lines if re.match(r"^\s*[-+]?\d", ln)]
+    for d in ("\t", ";", "|"):
+        if data_like and sum(d in ln for ln in data_like) >= 0.8 * len(data_like):
+            return d
     best, best_score = None, -1
     for delim in [",", "\t", ";", "|", None]:
         counts = []
@@ -567,11 +579,11 @@ def _table_to_long(df: pd.DataFrame, meta: dict, src: str, dev: DeviceInfo, note
         m.update(extra_meta)
         f["_density"] = dens
         for role, key in (("T", "T"), ("d", "d"), ("N", "N"), ("area", "area"), ("sweep", "sweep"),
-                          ("rate", "rate"), ("H", "H"), ("gate", "gate")):
+                          ("rate", "rate"), ("H", "H"), ("gate", "gate"), ("state", "state"), ("angle", "angle")):
             cs = [c for c in df.columns if roles[c][0] == role]
             if cs:
                 c = cs[0]
-                if role in ("sweep",):
+                if role in ("sweep", "state"):
                     f[key] = df[c].astype(str)
                 else:
                     val = pd.to_numeric(df[c], errors="coerce")
@@ -653,6 +665,8 @@ def _apply_meta(f: pd.DataFrame, dev: DeviceInfo, notes: list) -> pd.DataFrame:
             f["d"] = m["N"] * dev.layer_spacing_nm
         elif dev.thickness_nm is not None:
             f["d"] = dev.thickness_nm
+        elif dev.n_layers and dev.layer_spacing_nm:
+            f["d"] = dev.n_layers * dev.layer_spacing_nm
         else:
             f["d"] = 10.0
             notes.append(f"{src}: no thickness found; assumed 10 nm (thickness checks disabled).")
@@ -728,9 +742,12 @@ class Dataset:
 def _assign_curves(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
     df["_ak"] = df["area"].fillna(-1.0).round(20)
-    extra = [c for c in ("H", "gate") if c in df.columns]
+    extra = [c for c in ("H", "gate", "angle") if c in df.columns]
     for c in extra:
         df[c] = df[c].fillna(0.0)
+    if "state" in df.columns:
+        df["state"] = df["state"].fillna("")
+        extra.append("state")
     df["curve"] = df.groupby(["src", "T", "d", "_ak"] + extra, sort=False).ngroup()
     if "sweep" not in df.columns or df["sweep"].isna().all():
         df["sweep"] = _sweep_labels(df)

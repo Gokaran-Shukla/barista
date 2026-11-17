@@ -107,6 +107,7 @@ class Result:
     timing: dict
     mixed: Optional[dict] = None
     assigned_key: str = ""
+    certainty: Optional[object] = None
 
     def ranked(self):
         return sorted(self.assessments, key=lambda a: -a.score)
@@ -280,6 +281,24 @@ def evidence(diag, ds, dev, keys):
         if rr > 10 or rr < 0.1:
             _add(ev, "schottky", 1.5, f"strong rectification (I+/I− = {rr:.3g}): contact-limited injection")
             _add(ev, FIELD_DRIVEN + SCLC, -0.5, f"rectification {rr:.3g} points to the contacts")
+
+    # --- admissibility from trap density and barrier thickness (Fig. 10) -----------------
+    if dev.trap_density_cm3:
+        dmin, dmax = float(ds.thicknesses.min()), float(ds.thicknesses.max())
+        # traps met along a straight tunnelling path of cross-section ~1 nm²
+        n_path = dev.trap_density_cm3 * 1e-21 * dmax
+        r_t = (dev.trap_density_cm3 * 1e-21) ** (-1 / 3)          # mean trap spacing (nm)
+        tag = f"N_t = {dev.trap_density_cm3:.2g} cm⁻³: ≈{n_path:.2g} traps per path, spacing {r_t:.2g} nm (Fig. 10)"
+        if n_path < 0.1 and dmax < 4:
+            _add(ev, ["coherent", "band_to_band"], 1.0, tag + " — clean gap, coherent tunnelling admissible")
+            _add(ev, ["nn_hopping", "vrh", "polaron", "gdm"], -1.0, tag + " — too few states for hopping")
+        elif n_path < 3:
+            _add(ev, ["tat", "glazman_matveev"], 1.0, tag + " — a few localised states: TAT / chains admissible")
+        else:
+            _add(ev, ["nn_hopping", "vrh", "polaron", "sclc_trap", "sclc_exp", "poole_frenkel"], 1.0,
+                 tag + " — dense localised states: hopping / trap-limited conduction admissible")
+            if dmin > 4:
+                _add(ev, "coherent", -1.0, tag + " — coherent tunnelling negligible")
 
     # --- material prior --------------------------------------------------------------
     if dev.material_class in MATERIAL_PRIORS:

@@ -60,13 +60,100 @@ hopping mixture is also resolved into its two channels.
 
 ---
 
+## Benchmarks
+
+See [`benchmarks/BENCHMARKS.md`](benchmarks/BENCHMARKS.md) (reproduce with `python benchmarks/run_benchmarks.py -j <cores>`):
+
+| part | what is tested | result |
+|---|---|---|
+| A | 8 published systems (review Table 11 / Sec. XXII): Lenzlinger–Snow SiO₂ FN, Lee hBN, Wang alkanethiols, Choi molecular wires, Le Corre MAPbBr₃ SCLC, Lin CrSBr VRH, Xu a-Si GM chains, Table 8 PF. Data regenerated from the reported parameters in the original measurement windows | **8/8 mechanisms**; published parameters inside the bootstrap 95 % CI |
+| B | figure digitiser round trip | vector: 10⁻⁵–10⁻⁴ relative error; raster at 300 dpi: 0.6–2 % |
+| C | paper PDF → text claim + digitised figure → mechanism, five mechanisms, vector and raster | vector 5/5 agree; raster 4/5 agree or consistent, 1/5 disagrees (overlapping markers) |
+| D | spin: Klein 2018 CrI₃ (published MR 95/300/550 %), Lin 2024 CrSBr ΔEa, graphene/CrSb/graphene proximity, Fert–Jaffrès | **4/4**; Klein aΔκ = 0.66 (0.62–0.71), the review's 0.64–0.78 |
+
+Part A uses parameters the authors published, not their raw data (the raw I–V files are not public). To benchmark
+against original data, run `barista paper <pdf>` on the papers themselves.
+
+## How certain is the assignment?
+
+`barista analyze` runs a full uncertainty analysis by default (`--bootstrap 200`; `--no-certainty` skips it), in
+parallel over all cores:
+
+* **stratified bootstrap** (resampling within each I(V) curve) → probability that each mechanism is selected,
+  with a Wilson 95 % interval; distributions of the Akaike weights; bootstrap 68 %/95 % intervals, standard errors
+  and bias of every parameter;
+* **profile likelihood** intervals (Δχ² = 1 and 3.84), which do not assume a parabolic χ² surface;
+* asymptotic (covariance) intervals with Student-t quantiles, and the full correlation matrix;
+* **fit-window stability**: refits on each half of the bias range and with each temperature or thickness held
+  out, with shifts expressed in σ (review Sec. XVIII.E iii);
+* **residual diagnostics**: reduced χ² against the measured scatter, Shapiro–Wilk normality, Durbin–Watson and
+  runs tests per curve;
+* **model tests**: Akaike weights, BIC posterior probabilities, evidence ratios, Vuong's non-nested test (point-wise
+  and curve-blocked), and a likelihood-ratio test for the two-channel model.
+
+These combine into a certainty grade: LOW, MODERATE, HIGH or VERY HIGH. Figures 8–11 and the Excel sheets
+*Selection probability*, *Parameter confidence*, *Profile likelihood*, *Window stability*, *Vuong tests* and
+*Bootstrap samples* report every number behind the grade.
+
+## Reading a published paper
+
+```bash
+barista paper paper.pdf -o paper_out --bootstrap 200      # or a PNG/JPG/TIFF of a figure
+```
+
+1. **Text.** BARISTA reads the title, DOI and abstract. It works out which mechanism the authors claim, scoring
+   keywords in the whole text with the abstract, conclusions and each figure's caption weighted more heavily. It
+   also extracts the parameters the authors report: barrier height, trap depth, ε_r, n, N_t, m*, thickness, area
+   and temperatures.
+2. **Figures.**
+   - Vector plots are recovered exactly: axes are calibrated from the tick labels (including 10ⁿ superscripts),
+     labels are snapped to the major ticks, and series are grouped by colour and labelled from the legend.
+   - Bitmap figures are read with OCR (including a glyph-level reader for 10ⁿ labels), colour clustering, and
+     marker or line extraction.
+3. **Analysis.** Every current-vs-bias (or current-vs-field) panel becomes an I(V, T, d) dataset. Temperature and
+   thickness come from the legend or the caption, and the authors' markers are preferred over their fit lines.
+   The full protocol and certainty analysis then run on each dataset.
+4. **Verdict against the authors.** Each dataset is graded AGREES, SAME FAMILY, CLAIM NOT EXCLUDED, DISAGREES or
+   DATA CANNOT DECIDE, with a side-by-side comparison of the reported and fitted parameters. The digitised data
+   (`digitised_data.csv`) and a re-plot of every digitised panel (`digitised_figures.png`) are exported so you
+   can check them against the paper.
+
+## Spin-dependent transport
+
+```bash
+barista spin data/ --system graphene/CrSb/graphene --layers 6 --trap-density 1e18
+barista analyze data/        # runs automatically when a 'state' column (P/AP, FM/AFM, Néel±) is present
+```
+
+MR = G_P/G_AP − 1 is built from the two configurations, or read from an `MR` column. Five models are fitted
+globally to MR(V, T, N, d) and ranked by AIC together with their fingerprints:
+
+| model | physics | signature |
+|---|---|---|
+| `julliere` | Jullière/Slonczewski, P(T) = P0(1−αT^{3/2}), bias roll-off | N-independent, Bloch softening |
+| `spin_filter` | coherent filtering by a layered barrier, 1+MR = cosh(N aΔκ) (even N) / cosh(N aΔκ)/cosh(aΔκ) (odd N) | exponential in N, odd/even parity, vanishes at T_N |
+| `spin_hopping` | spin-dependent hopping, MR = e^{ΔEa/kT} − 1 | Arrhenius MR, activated P-state current |
+| `proximity` | **interface polarisation from the exchange field induced in Dirac electrodes** (graphene/CrSb/graphene): spin-split Dirac cones Δ(T), Fermi level μ, broadening Γ, in series with an altermagnetic barrier whose spin-dependent decay depends on momentum, e^{−σN aΔκ} | MR changes sign with bias near the Dirac point; contact term independent of N plus a bulk term growing with N; follows m_int(T) |
+| `valet_fert` | **Valet–Fert / Fert–Jaffrès spin drift–diffusion**, solved exactly for F/I/N/I/F (γ, β, r_b*, l_sf^N; conductivity-mismatch window) | MR decays with spacer thickness |
+
+User inputs that pin the regime:
+
+- `--layers N` sets the number of CrSb (or other) layers, so that d = N·a.
+- `--trap-density` estimates the traps met along a tunnelling path and the mean trap spacing, which tells
+  coherent, few-trap (TAT / chains) and hopping regimes apart (review Fig. 10).
+- `--system` presets supply the interlayer spacing and ordering temperature for graphene/CrSb/graphene,
+  graphite/CrI₃/graphite, graphite/CrSBr/graphite and CoFeB/MgO/CoFeB.
+
 ## Install
 
 ```bash
 git clone https://github.com/Gokaran-Shukla/barista.git
 cd barista
-pip install -e ".[all]"        # core + GUI + extra file formats
+pip install -e ".[all]"        # core + GUI + extra file formats + paper reader
 ```
+
+Reading bitmap figures also needs the Tesseract OCR binary (`apt install tesseract-ocr`, `brew install tesseract`
+or `conda install -c conda-forge tesseract`). Vector figures need nothing else.
 
 ## Use
 
@@ -76,6 +163,8 @@ pip install -e ".[all]"        # core + GUI + extra file formats
 barista analyze my_data/ --area 100 --n-opt 2.1 -o results
 barista analyze iv.xlsx --style nature --font serif --formats pdf,png,svg,eps,tiff
 barista analyze run1.csv run2.csv --trap-density 1e18 --eps-r 7 --fix trap_density_cm3
+barista paper article.pdf -o paper_out               # read a published paper and fingerprint it
+barista spin cri3_series/ --system graphite/CrI3/graphite
 barista mechanisms                          # list mechanisms and their parameters
 barista synth poole_frenkel --preset -o pf.csv   # synthetic test data with a hidden answer
 ```

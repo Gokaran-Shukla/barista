@@ -101,12 +101,16 @@ def _device_value(p: Param, dev):
     return float(np.clip(v, p.lo, p.hi))
 
 
-def setup(mech: Mechanism, dev, hints=None, free_override=()):
+def setup(mech: Mechanism, dev, hints=None, free_override=(), fixed_extra=None):
     """Split parameters into free / fixed / profiled and choose starting values."""
     hints = hints or {}
+    fixed_extra = fixed_extra or {}
     fixed, free, init = {}, [], {}
     prof = None
     for p in mech.params:
+        if p.name in fixed_extra:
+            fixed[p.name] = float(fixed_extra[p.name])
+            continue
         dv = _device_value(p, dev)
         start = dv if dv is not None else hints.get(p.name, p.init)
         start = float(np.clip(start, p.lo, p.hi))
@@ -148,8 +152,8 @@ def _random_starts(free, n, rng):
 
 
 def fit(mech: Mechanism, data: FitData, dev, hints=None, n_starts=None, seed=0, extra_starts=(),
-        free_override=(), screen=False) -> FitResult:
-    free, fixed, prof, init = setup(mech, dev, hints, free_override)
+        free_override=(), screen=False, fixed_extra=None, uncertainties=True) -> FitResult:
+    free, fixed, prof, init = setup(mech, dev, hints, free_override, fixed_extra)
     names = [p.name for p in free]
     lo = np.array([p.lo for p in free]); hi = np.array([p.hi for p in free])
 
@@ -223,7 +227,7 @@ def fit(mech: Mechanism, data: FitData, dev, hints=None, n_starts=None, seed=0, 
         return (_model_lnI(mech, data, dev, d) + extra - data.lnI) * data.w
 
     errors, corr, k_eff, degenerate = {}, None, len(all_names), []
-    if len(all_names) and not screen:
+    if len(all_names) and not screen and uncertainties:
         J = np.empty((n, len(all_names)))
         r0 = resid_all(xa)
         for j in range(len(all_names)):

@@ -30,6 +30,10 @@ def _device_args(p):
                    help="amorphous_oxide | crystalline_oxide | high_k_oxide | layered_vdw | organic | molecular | "
                         "perovskite | resistive_memory | mtj | nitride | semiconductor")
     g.add_argument("--contact-2d", action="store_true", dest="contact_2d", help="2D channel contact (T^3/2 Richardson)")
+    g.add_argument("--layers", type=int, dest="n_layers", help="number of barrier layers N (e.g. CrSb layers); d = N·a")
+    g.add_argument("--exchange", type=float, dest="exchange_meV", help="proximity exchange splitting guess (meV)")
+    g.add_argument("--ordering-T", type=float, dest="ordering_T_K", help="Néel / Curie temperature (K)")
+    g.add_argument("--system", help="preset: graphene/CrSb/graphene, graphite/CrI3/graphite, graphite/CrSBr/graphite")
     g.add_argument("--fix", help="comma-separated inputs to impose as hard constraints, e.g. "
                                  "barrier_eV,trap_density_cm3,mass_ratio")
 
@@ -41,12 +45,20 @@ def _make_device(a):
         base = DeviceInfo.from_file(a.device_file).__dict__.copy()
     for k in ("area_um2", "thickness_nm", "temperature_K", "layer_spacing_nm", "eps_r", "n_opt", "barrier_eV",
               "mass_ratio", "band_gap_eV", "trap_density_cm3", "trap_depth_eV", "Nc_cm3", "mobility_cm2Vs",
-              "fermi_energy_eV", "material_class"):
+              "fermi_energy_eV", "material_class", "n_layers", "exchange_meV", "ordering_T_K"):
         v = getattr(a, k, None)
         if v is not None:
             base[k] = v
     if a.contact_2d:
         base["contact_2d"] = True
+    sysname = getattr(a, "system", None)
+    if sysname:
+        from .device import SYSTEM_PRESETS
+        pre = SYSTEM_PRESETS.get(sysname.lower().replace(" ", ""))
+        if pre is None:
+            raise SystemExit(f"unknown --system {sysname}; known: {', '.join(SYSTEM_PRESETS)}")
+        for k, v in pre.items():
+            base.setdefault(k, v)
     if a.fix:
         base["fix"] = [s.strip() for s in a.fix.split(",") if s.strip()]
     return DeviceInfo.from_dict(base)
@@ -66,12 +78,27 @@ def cmd_analyze(a):
     for n in ds.notes:
         print("  note:", n)
     mechs = [m.strip() for m in a.mechanisms.split(",")] if a.mechanisms else None
+    full_ds = ds
+    if "state" in ds.df.columns and ds.df["state"].nunique() >= 2:
+        from . import spin as _spin
+        st = ds.df["state"].map(_spin._norm_state)
+        keep = "P" if (st == "P").any() else st.iloc[0]
+        print(f"  magnetic configurations found {sorted(ds.df['state'].unique())}: charge analysis on '{keep}', "
+              "spin analysis on the MR")
+        ds = io.Dataset(df=ds.df[st == keep].reset_index(drop=True), density=ds.density, area_known=ds.area_known,
+                        notes=ds.notes)
     res = engine.analyze(ds, dev, mechanisms=mechs, quick=a.quick, workers=a.workers,
                          progress=(lambda m: print("  ·", m)) if a.verbose else None)
+    if not a.no_certainty:
+        from . import uncertainty
+        print(f"  · uncertainty analysis: {a.bootstrap} bootstrap replicates, profile likelihood, window stability")
+        res.certainty = uncertainty.assess(res, B=a.bootstrap, workers=a.workers,
+                                           progress=(lambda m: print("  ·", m)) if a.verbose else None)
     out = a.output or "barista_output"
     style = Style(journal=a.style, font=a.font, fontsize=a.fontsize,
                   formats=tuple(f.strip() for f in a.formats.split(",")))
     paths = export_all(res, out, style)
+    res.spin = _spin_after_charge(full_ds, dev, res, a, out)
     print("\n" + "=" * 78)
     print(f"MECHANISM : {res.headline}")
     print(f"VERDICT   : {res.confidence}")
@@ -80,12 +107,82 @@ def cmd_analyze(a):
     print("\nRanking:")
     for i, x in enumerate(res.ranked()[:6]):
         print(f"  {i + 1}. {x.key:16s} support {100 * x.prob:6.2f} %  ΔAIC {x.d_aic:9.1f}  {x.verdict}")
+    if res.certainty is not None:
+        print("\nCERTAINTY :", res.certainty.grade)
+        print(res.certainty.summary)
+        for pn, r in res.certainty.params.items():
+            b = r.get("boot95"); pr = r.get("profile95")
+            print(f"   {pn:14s} {r['estimate']:.5g}  boot95 {b and [round(x, 5) for x in b]}  "
+                  f"profile95 {pr and [round(x, 5) for x in pr[:2]]}")
     if res.recommendations:
         print("\nNext measurements:")
         for r in res.recommendations:
             print("  -", r)
     print(f"\nResults written to {os.path.abspath(out)}  (report.html, barista_results.xlsx, figures/, tables/)"
           f"  [{time.time() - t0:.1f} s on {res.timing.get('workers', 1)} worker(s)]")
+
+
+def _spin_after_charge(ds, dev, res, a, out):
+    """If the data contain two magnetic configurations, run the spin analysis as well."""
+    if "state" not in ds.df.columns or ds.df["state"].nunique() < 2:
+        return None
+    from . import spin
+    from .spin_report import export_spin
+    tab = spin.mr_table(ds.df, p_state=getattr(a, "p_state", None), ap_state=getattr(a, "ap_state", None),
+                        layer_spacing_nm=dev.layer_spacing_nm, n_layers=dev.n_layers)
+    sr = spin.analyse_spin(tab, fixed=_fert_fixed(a), B=getattr(a, "spin_bootstrap", 100), charge_result=res)
+    export_spin(sr, os.path.join(out, "spin"))
+    print("\nSPIN      :", sr.statement)
+    return sr
+
+
+def _fert_fixed(a):
+    fx = {}
+    for k in ("rhoN", "rhoF", "lsfF"):
+        v = getattr(a, k, None)
+        if v is not None:
+            fx[k] = v
+    return fx
+
+
+def cmd_spin(a):
+    from . import io, spin, engine
+    from .spin_report import export_spin
+    dev = _make_device(a)
+    ds = io.load(a.inputs, dev)
+    out = a.output or "barista_spin"
+    res = None
+    if not a.no_charge and "state" in ds.df.columns:
+        # charge mechanism of the parallel / FM state (the review's protocol for spin claims)
+        pstate = ds.df["state"].map(spin._norm_state)
+        sub = io.Dataset(df=ds.df[pstate == (a.p_state or "P")].copy(), density=ds.density,
+                         area_known=ds.area_known, notes=ds.notes)
+        if len(sub.df) > 10:
+            res = engine.analyze(sub, dev, quick=True, workers=a.workers)
+            print(f"charge mechanism of the P state: {res.headline} — {res.confidence}")
+    tab = spin.mr_table(ds.df, p_state=a.p_state, ap_state=a.ap_state, layer_spacing_nm=dev.layer_spacing_nm,
+                        n_layers=dev.n_layers)
+    models = [m.strip() for m in a.models.split(",")] if a.models else None
+    sr = spin.analyse_spin(tab, fixed=_fert_fixed(a), models=models, B=a.bootstrap, charge_result=res)
+    export_spin(sr, out)
+    print(sr.statement)
+    print("ranking:", ", ".join(f"{k} {100 * sr.probs[k]:.1f}%" for k in sr.ranking))
+    print(f"results in {os.path.abspath(out)}")
+
+
+def cmd_paper(a):
+    from .paper.pipeline import analyse_paper
+    dev_over = {}
+    for k in ("area_um2", "thickness_nm", "n_opt", "eps_r", "trap_density_cm3", "barrier_eV"):
+        v = getattr(a, k, None)
+        if v is not None:
+            dev_over[k] = v
+    pages = [int(x) - 1 for x in a.pages.split(",")] if a.pages else None
+    pa = analyse_paper(a.pdf, outdir=a.output or "barista_paper", pages=pages, bootstrap=a.bootstrap,
+                       workers=a.workers, quick=a.quick, progress=print if a.verbose else None,
+                       dev_override=dev_over)
+    print(pa.summary)
+    print(f"digitised data, figures and per-dataset reports in {os.path.abspath(a.output or 'barista_paper')}")
 
 
 def cmd_synth(a):
@@ -133,6 +230,8 @@ def main(argv=None):
     pa.add_argument("--quick", action="store_true", help="fewer starts, no two-channel / series tests")
     pa.add_argument("-j", "--workers", type=int, default=None,
                     help="processes on this node (default: all CPUs available to the job; 1 = serial)")
+    pa.add_argument("--bootstrap", type=int, default=200, help="bootstrap replicates for the certainty analysis")
+    pa.add_argument("--no-certainty", action="store_true", help="skip bootstrap / profile-likelihood analysis")
     pa.add_argument("-v", "--verbose", action="store_true")
     _device_args(pa)
     pa.set_defaults(func=cmd_analyze)
@@ -148,6 +247,36 @@ def main(argv=None):
     ps.add_argument("--noise", type=float, default=0.03)
     ps.add_argument("--seed", type=int, default=0)
     ps.set_defaults(func=cmd_synth)
+    pspin = sub.add_parser("spin", help="spin-dependent transport: MR(V,T,N) from P/AP (FM/AFM) data or an MR table")
+    pspin.add_argument("inputs", nargs="+")
+    pspin.add_argument("-o", "--output")
+    pspin.add_argument("--p-state", dest="p_state", help="label of the parallel / FM configuration (default: P)")
+    pspin.add_argument("--ap-state", dest="ap_state", help="label of the antiparallel / AFM configuration (default: AP)")
+    pspin.add_argument("--models", help="julliere,spin_filter,spin_hopping,proximity,valet_fert")
+    pspin.add_argument("--bootstrap", type=int, default=100)
+    pspin.add_argument("--no-charge", action="store_true", help="skip the charge-mechanism analysis of the P state")
+    pspin.add_argument("--rhoN", type=float, help="spacer resistivity ρ*_N (µΩ cm) for Valet–Fert")
+    pspin.add_argument("--rhoF", type=float, help="ferromagnet resistivity ρ*_F (µΩ cm)")
+    pspin.add_argument("--lsfF", type=float, help="spin-diffusion length of F (nm)")
+    pspin.add_argument("-j", "--workers", type=int, default=None)
+    _device_args(pspin)
+    pspin.set_defaults(func=cmd_spin)
+    pp = sub.add_parser("paper", help="read a published paper (PDF or figure image), digitise its I–V data and "
+                                      "fingerprint the mechanism")
+    pp.add_argument("pdf")
+    pp.add_argument("-o", "--output")
+    pp.add_argument("--pages", help="comma-separated page numbers (1-based) to digitise")
+    pp.add_argument("--bootstrap", type=int, default=0, help="bootstrap replicates for certainty (0 = skip)")
+    pp.add_argument("--quick", action="store_true")
+    pp.add_argument("-j", "--workers", type=int, default=None)
+    pp.add_argument("-v", "--verbose", action="store_true")
+    pp.add_argument("--area", type=float, dest="area_um2")
+    pp.add_argument("--thickness", type=float, dest="thickness_nm")
+    pp.add_argument("--n-opt", type=float, dest="n_opt")
+    pp.add_argument("--eps-r", type=float, dest="eps_r")
+    pp.add_argument("--trap-density", type=float, dest="trap_density_cm3")
+    pp.add_argument("--barrier", type=float, dest="barrier_eV")
+    pp.set_defaults(func=cmd_paper)
     pm = sub.add_parser("mechanisms", help="list the mechanisms and their parameters")
     pm.set_defaults(func=cmd_mechanisms)
     pg = sub.add_parser("gui", help="launch the graphical interface (needs streamlit)")

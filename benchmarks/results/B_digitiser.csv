@@ -1,0 +1,9 @@
+figure,mode,series_recovered,median_relative_error_y
+log-log axes,vector,3/3,2.1707400822799953e-05
+log-log axes,raster 300 dpi,3/3,0.00592679208745921
+linear-log axes,vector,3/3,0.00013959896045115134
+linear-log axes,raster 300 dpi,3/3,0.007420054360394046
+linear-linear axes,vector,3/3,1.0595306786641907e-05
+linear-linear axes,raster 300 dpi,3/3,0.01119500328362374
+log-log axes,vector,3/3,0.00011762726509278716
+log-log axes,raster 300 dpi,3/3,0.019222428398571193

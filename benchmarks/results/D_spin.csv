@@ -1,0 +1,5 @@
+id,published,BARISTA,key_parameter,correct
+Klein2018 CrI3 (published MR values),"coherent spin filter, aΔκ ≈ 0.64–0.78 (review Sec. XXII.B)",spin_filter,aΔκ0 = 0.660 (95% CI 0.619–0.713),True
+"Lin2024 CrSBr (ΔEa = 20 meV, reconstructed)","spin-dependent hopping, ΔEa = 20 meV",spin_hopping,ΔEa = 19.99 meV (95% CI 19.97–20.01),True
+"Graphene/CrSb/graphene (hidden: Δ=20 meV, μ=15 meV)",interface proximity polarisation,proximity,"Δ = 19.3 meV (17.3863701068275, 20.65250313820905), μ = 14.7 meV (13.756082228329298, 15.956420022047226)",True
+"Fert–Jaffrès F/I/N/I/F (hidden: γ=0.6, l_sf=300 nm)",spin drift–diffusion,valet_fert,"γ = 0.753 (0.5390326320663041, 0.7720574085899419), l_sf = 365 nm (284.0919955750844, 520.8984396097377)",True

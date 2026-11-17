@@ -32,6 +32,19 @@ MATERIAL_PRIORS = {
 }
 
 
+# Layered-magnet barriers: interlayer spacing (nm), typical ordering temperature, electrodes.
+SYSTEM_PRESETS = {
+    "graphene/crsb/graphene": {"layer_spacing_nm": 0.2735, "ordering_T_K": 700.0, "electrode": "graphene",
+                               "system": "graphene/CrSb/graphene", "material_class": "layered_vdw"},
+    "graphite/cri3/graphite": {"layer_spacing_nm": 0.66, "ordering_T_K": 45.0, "electrode": "graphene",
+                               "system": "graphite/CrI3/graphite", "material_class": "mtj"},
+    "graphite/crsbr/graphite": {"layer_spacing_nm": 0.79, "ordering_T_K": 132.0, "electrode": "graphene",
+                                "system": "graphite/CrSBr/graphite", "material_class": "layered_vdw"},
+    "cofeb/mgo/cofeb": {"ordering_T_K": 1000.0, "electrode": "ferromagnet", "system": "CoFeB/MgO/CoFeB",
+                        "material_class": "crystalline_oxide"},
+}
+
+
 @dataclass
 class DeviceInfo:
     # geometry
@@ -51,6 +64,12 @@ class DeviceInfo:
     trap_depth_eV: Optional[float] = None     # E_c - E_t (SCLC) or Phi_t (PF/TAT)
     Nc_cm3: float = 2.5e19                    # effective DOS of the transport band at 300 K
     mobility_cm2Vs: Optional[float] = None
+    # magnetic / spin
+    n_layers: Optional[int] = None            # number of barrier layers (e.g. CrSb layers); d = N·a
+    exchange_meV: Optional[float] = None      # proximity exchange splitting guess (spin module)
+    ordering_T_K: Optional[float] = None      # Néel / Curie temperature
+    electrode: Optional[str] = None           # 'graphene' | 'metal' | 'ferromagnet'
+    system: Optional[str] = None              # e.g. 'graphene/CrSb/graphene'
     # misc
     temperature_K: Optional[float] = None     # used only if the data has no temperature column
     material_class: Optional[str] = None      # key of MATERIAL_PRIORS
