@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "barista-transport"
+version = "0.1.0"
+description = "BARISTA — BARrier Inference of Sequential, Tunnelling & Activated transport: identify the charge-transport mechanism across thin barriers from I(V, T, d) data"
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "Gokaran Shukla", email = "gokaran.shukla@kaust.edu.sa" }]
+requires-python = ">=3.9"
+dependencies = ["numpy>=1.22", "scipy>=1.9", "pandas>=1.5", "matplotlib>=3.6", "openpyxl>=3.0", "pyyaml>=6"]
+keywords = ["tunnelling", "Poole-Frenkel", "Schottky", "SCLC", "hopping", "transport mechanism", "thin films", "I-V analysis"]
+classifiers = ["Programming Language :: Python :: 3", "Topic :: Scientific/Engineering :: Physics",
+               "Intended Audience :: Science/Research", "License :: OSI Approved :: MIT License"]
+
+[project.optional-dependencies]
+gui = ["streamlit>=1.30"]
+formats = ["h5py", "pyarrow", "xlrd", "odfpy"]
+all = ["streamlit>=1.30", "h5py", "pyarrow", "xlrd", "odfpy"]
+dev = ["pytest"]
+
+[project.scripts]
+barista = "barista.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/Gokaran-Shukla/barista"
+
+[tool.setuptools.packages.find]
+include = ["barista*"]
