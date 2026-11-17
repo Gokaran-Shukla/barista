@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "barista-transport"
-version = "0.2.0"
+version = "0.3.0"
 description = "BARISTA — BARrier Inference of Sequential, Tunnelling & Activated transport: identify the charge-transport mechanism across thin barriers from I(V, T, d) data"
 readme = "README.md"
 license = { text = "MIT" }

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import numpy as np
 import sys
 import time
 
@@ -25,6 +26,8 @@ def _device_args(p):
     g.add_argument("--trap-depth", type=float, dest="trap_depth_eV", help="trap depth (eV)")
     g.add_argument("--Nc", type=float, dest="Nc_cm3", help="effective density of states (cm⁻³)")
     g.add_argument("--mobility", type=float, dest="mobility_cm2Vs", help="mobility (cm²/Vs)")
+    g.add_argument("--attempt-freq", type=float, dest="attempt_freq_Hz",
+                   help="trap attempt frequency ν₀ (s⁻¹) for the TAT trap-density estimate (default 1e12–1e14)")
     g.add_argument("--fermi-energy", type=float, dest="fermi_energy_eV", help="electrode Fermi energy (eV)")
     g.add_argument("--material", dest="material_class",
                    help="amorphous_oxide | crystalline_oxide | high_k_oxide | layered_vdw | organic | molecular | "
@@ -44,7 +47,7 @@ def _make_device(a):
     if a.device_file:
         base = DeviceInfo.from_file(a.device_file).__dict__.copy()
     for k in ("area_um2", "thickness_nm", "temperature_K", "layer_spacing_nm", "eps_r", "n_opt", "barrier_eV",
-              "mass_ratio", "band_gap_eV", "trap_density_cm3", "trap_depth_eV", "Nc_cm3", "mobility_cm2Vs",
+              "mass_ratio", "band_gap_eV", "trap_density_cm3", "trap_depth_eV", "Nc_cm3", "mobility_cm2Vs", "attempt_freq_Hz",
               "fermi_energy_eV", "material_class", "n_layers", "exchange_meV", "ordering_T_K"):
         v = getattr(a, k, None)
         if v is not None:
@@ -114,6 +117,12 @@ def cmd_analyze(a):
             b = r.get("boot95"); pr = r.get("profile95")
             print(f"   {pn:14s} {r['estimate']:.5g}  boot95 {b and [round(x, 5) for x in b]}  "
                   f"profile95 {pr and [round(x, 5) for x in pr[:2]]}")
+    tr = res.traps
+    print("\nTRAPS     :", tr.statement)
+    for t in [t for t in tr.estimates if t.weight >= 0.01]:
+        rng = f"[{t.lo_cm3:.2g}, {t.hi_cm3:.2g}]" if np.isfinite(t.lo_cm3) or np.isfinite(t.hi_cm3) else ""
+        en = f"  {t.energy_label} = {t.energy_eV:.3g} eV" if np.isfinite(t.energy_eV) else ""
+        print(f"   {t.kind:12s} {t.Nt_cm3:9.3g} cm⁻³ {rng:24s} {t.method}{en}")
     if res.recommendations:
         print("\nNext measurements:")
         for r in res.recommendations:

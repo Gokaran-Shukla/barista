@@ -760,7 +760,73 @@ def make_all(res, outdir, style: Style = None):
         out["fig7_two_channel_fit"] = fig_iv_fit(res, style, outdir, key=res.mixed["key"], name="fig7_two_channel_fit")
     elif res.mixed:
         out["fig7_best_single_fit"] = fig_iv_fit(res, style, outdir, key=res.best.key, name="fig7_best_single_fit")
+    try:
+        r = fig_traps(res, style, outdir)
+        if r:
+            out["fig15_trap_density"] = r
+    except Exception as exc:
+        res.warnings.append(f"trap-density figure skipped: {exc}")
     return out
+
+
+def fig_traps(res, style, outdir, name="fig15_trap_density"):
+    """Forest plot of every trap-density route: point estimates with 95 % intervals, bounds as arrows."""
+    tr = res.traps
+    top = {a.key for a in res.ranked()[:3]}
+    rows = [t for t in tr.estimates if (t.weight >= 0.01 or t.mechanism in top) and np.isfinite(t.Nt_cm3)
+            and 1e8 < t.Nt_cm3 < 1e25]
+    if not rows:
+        return None
+    assigned = set((res.assigned_key or res.best.key).split("+"))
+    rows.sort(key=lambda t: (t.mechanism not in assigned, -t.weight))
+    with style.ctx():
+        fig, ax = plt.subplots(figsize=(style.double, 1.0 + 0.26 * len(rows)))
+        y = np.arange(len(rows))[::-1]
+        c = tr.consensus
+        if np.isfinite(c.get("Nt_cm3", np.nan)):
+            lo, hi = c.get("lo_cm3", np.nan), c.get("hi_cm3", np.nan)
+            if np.isfinite(lo) and np.isfinite(hi):
+                ax.axvspan(lo, hi, color=ACCENT, alpha=0.10, lw=0)
+            ax.axvline(c["Nt_cm3"], color=ACCENT, lw=1.0, ls="-", alpha=0.7)
+        if res.device.trap_density_cm3:
+            ax.axvline(res.device.trap_density_cm3, color=INK, lw=0.9, ls="--")
+            ax.text(res.device.trap_density_cm3, y.max() + 0.6, " supplied", fontsize=style.fs - 1, color=INK2,
+                    va="bottom")
+        xs = []
+        for yi, t in zip(y, rows):
+            col = ACCENT if t.mechanism in assigned else OTHER
+            if t.kind == "upper bound":
+                ax.annotate("", xy=(t.Nt_cm3 / 30, yi), xytext=(t.Nt_cm3, yi),
+                            arrowprops=dict(arrowstyle="-|>", color=col, lw=1.2))
+                ax.plot([t.Nt_cm3], [yi], "|", ms=8, mew=1.5, color=col)
+                xs += [t.Nt_cm3, t.Nt_cm3 / 30]
+            elif t.kind == "lower bound":
+                ax.annotate("", xy=(t.Nt_cm3 * 30, yi), xytext=(t.Nt_cm3, yi),
+                            arrowprops=dict(arrowstyle="-|>", color=col, lw=1.2))
+                xs += [t.Nt_cm3, t.Nt_cm3 * 30]
+            else:
+                lo = t.lo_cm3 if np.isfinite(t.lo_cm3) and t.lo_cm3 > 0 else t.Nt_cm3
+                hi = t.hi_cm3 if np.isfinite(t.hi_cm3) else t.Nt_cm3
+                lo, hi = max(lo, t.Nt_cm3 / 1e4), min(hi, t.Nt_cm3 * 1e4)
+                ax.plot([lo, hi], [yi, yi], "-", color=col, lw=1.6, solid_capstyle="round")
+                ax.plot([t.Nt_cm3], [yi], "o", ms=5, color=col, mec="white", mew=0.8, zorder=3)
+                xs += [lo, hi]
+        ax.set_xscale("log")
+        xs = np.array(xs)
+        ax.set_xlim(10 ** np.floor(np.log10(xs.min()) - 0.3), 10 ** np.ceil(np.log10(xs.max()) + 0.3))
+        labels = []
+        for t in rows:
+            en = f"; {t.energy_tex} = {t.energy_eV:.2f} eV" if np.isfinite(t.energy_eV) and t.energy_tex else ""
+            labels.append(f"{SHORT.get(t.mechanism, t.mechanism)}: {t.short}{en}")
+        ax.set_yticks(y)
+        ax.set_yticklabels(labels, fontsize=style.fs - 1)
+        ax.set_ylim(-0.7, len(rows) - 0.3)
+        ax.set_xlabel(r"trap / localised-state density $N_t$ (cm$^{-3}$)")
+        ax.tick_params(axis="y", which="both", length=0)
+        ax.yaxis.set_minor_locator(matplotlib.ticker.NullLocator())
+        ax.grid(axis="x", which="major", color="#e4e3de", lw=0.5)
+        ax.set_axisbelow(True)
+        return _save(fig, outdir, name, style)
 
 
 # ---------------------------------------------------------------------------

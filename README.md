@@ -207,6 +207,37 @@ export_all(res, "results")
   inputs.
 * **Units in headers are honoured:** `I (nA)`, `J (A/cm^2)`, `V (mV)`, `d (Å)`, `T (°C)`, `area (um2)`.
 
+## Trap density from the I–V data
+
+Once the mechanism is assigned, BARISTA predicts the **trap (localised-state) density N_t and the trap energy** from the
+I–V data alone. Every route the data allow is used. Each route gives a 95 % interval (bootstrap samples when the
+certainty analysis has run) and its assumptions. A support-weighted consensus is reported in the CLI, the
+Excel/CSV files (sheets *Trap density* and *Trap summary*), `report.html`, `results.json` and **Fig. 15**.
+
+| Mechanism | Route | Energy |
+|---|---|---|
+| SCLC, single level | N_t from the exact drift–Poisson fit | E_c − E_t |
+| SCLC, any | model-free trap-filled limit N_t = 2ε V_TFL/(e d²) from the γ peak, with the V_TFL ∝ d² test | — |
+| SCLC, exponential tail | total N_t (Mark–Helfrich) | k_B T_c |
+| Trap-assisted tunnelling | N_t = C/(e ν₀), ν₀ = 10¹²–10¹⁴ s⁻¹ (or `--attempt-freq`) | Φ_t |
+| NN / ionic / polaron hopping | site density 3/(4π r³) from the hop length | E_a |
+| Variable-range hopping | g(E_F) = 21.2/(k_B T₀ ξ³) and the states in the optimal hopping band | ΔE_h |
+| Poole–Frenkel | trap depth; N_t bound (isolated centres), absolute N_t with `--mobility` | Φ_t |
+| Coherent tunnelling, Schottky, metallic | no traps needed; 95 % **upper bound** from a parallel TAT channel | — |
+
+A supplied `--trap-density` is checked against the prediction. For papers, the predicted value is compared with the
+value the authors quote.
+
+Validation on synthetic data with known traps (`tests/test_traps.py`):
+
+| Mechanism | True N_t (cm⁻³) | Recovered (cm⁻³) | True energy | Recovered energy |
+|---|---|---|---|---|
+| SCLC, single level | 1.0e17 | 1.0e17 (fit), 9.5e16 (γ peak, model-free) | 0.35 eV | 0.350 eV |
+| SCLC, exponential tail | 3.2e17 | 3.2e17 | 77.6 meV | 77.5 meV |
+| TAT | 6.2e11 | 6.2e11 | 1.0 eV | 1.0 eV |
+| NN hopping | 7.1e19 | 7.1e19 | 0.12 eV | 0.12 eV |
+| VRH, g(E_F) | 2.5e20 eV⁻¹ | 2.5e20 eV⁻¹ | — | — |
+
 ## Optional device information
 
 All inputs are optional. By default they are used as **starting guesses and consistency checks**.
@@ -214,7 +245,7 @@ For example, the Poole–Frenkel ε_r is compared with n², and the SCLC Nt with
 They become **hard constraints** only when listed in `--fix`.
 
 `--area --thickness --temperature --layer-spacing --eps-r --n-opt --barrier --mass --band-gap
---trap-density --trap-depth --Nc --mobility --fermi-energy --material --contact-2d --fix`
+--trap-density --trap-depth --Nc --mobility --attempt-freq --fermi-energy --material --contact-2d --fix`
 (or `--device-file device.yaml`).
 
 ## Outputs

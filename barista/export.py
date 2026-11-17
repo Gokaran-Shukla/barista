@@ -43,6 +43,7 @@ def tables(res):
         ("Verdict", res.confidence),
         ("Relative support", f"{100 * res.best.prob:.1f} %"),
         ("Statement", res.statement),
+        ("Trap density", res.traps.statement),
         ("rms deviation in current", f"{100 * (np.exp(res.best.fit.rms) - 1):.2f} %"),
         ("Data points / curves", f"{res.best.fit.n} / {ds.coverage()['n_curves']}"),
         ("Temperatures (K)", ", ".join(f"{t:g}" for t in ds.temperatures)),
@@ -136,6 +137,10 @@ def tables(res):
             "points_where_A_matters_%": round(100 * c["share_a"], 1),
             "points_where_B_matters_%": round(100 * c["share_b"], 1),
             **{f"p:{k}": v for k, v in c["fit"].params.items()}} for c in res.combos])
+    tr = res.traps
+    out["Trap density"] = tr.table()
+    out["Trap summary"] = pd.DataFrame([("statement", tr.statement)] +
+                                       [(k, v) for k, v in tr.consensus.items()], columns=["item", "value"])
     cert = getattr(res, "certainty", None)
     if cert is not None:
         out["Certainty summary"] = pd.DataFrame([("grade", cert.grade), ("summary", cert.summary),
@@ -204,6 +209,7 @@ def html_report(res, figs: dict, tabs: dict, path: str):
         "fig5_regime_map": "Sub-regime (or channel fraction) of the assigned model across bias and temperature.",
         "fig6_prediction": "Model prediction outside the measured window (dashed): a falsifiable forecast.",
         "fig7_mixed_fit": "Best two-channel description.",
+        "fig15_trap_density": "Trap (localised-state) density from every route the data allow: points with 95 % intervals, arrows are bounds; blue routes belong to the assigned mechanism, the shaded band is the consensus.",
         "fig8_model_certainty": "(a) Probability that each mechanism is selected in the stratified bootstrap (Wilson 95 % intervals); (b) Akaike weights.",
         "fig9_parameter_uncertainty": "Bootstrap distributions and correlations of the extracted parameters with bootstrap and profile-likelihood 95 % intervals.",
         "fig10_profile_likelihood": "Profile likelihood of each parameter; Δχ² = 1 and 3.84 give the 68 % and 95 % intervals.",
@@ -259,6 +265,8 @@ BARISTA {__version__} · {_dt.datetime.now().strftime('%Y-%m-%d %H:%M')}</div>
 <h2>Extracted parameters</h2>
 <table class="t"><tr><th>Parameter</th><th>Value (±1σ)</th><th>Meaning</th><th></th></tr>{par_rows}</table>
 <p class="sub">Reference: {esc(REFS.get(res.best.key, ''))}. Diagnostic protocol: G. Shukla, “Charge transport mechanisms across thin barriers: theory and experimental fingerprints” (2026).</p>
+<h2>Trap density</h2><div class="card">{esc(res.traps.statement)}</div>
+<div class="scroll">{table(tabs['Trap density'][['method','mechanism','type','Nt_cm-3','95%_low','95%_high','trap_energy_eV','energy_meaning','mechanism_support','assumptions']].sort_values('mechanism_support', ascending=False))}</div>
 <h2>Why this mechanism</h2>
 <div class="card"><b>Fingerprints</b><ul class="ev">{ev_rows or '<li>none</li>'}</ul>
 <b>Physical plausibility of the fitted parameters</b><ul class="ev">{ck_rows or '<li>none</li>'}</ul></div>
@@ -328,6 +336,8 @@ def export_all(res, outdir, style: Style = None, formats=None):
         "coverage": res.diag["coverage"],
         "fingerprints": {k: v for k, v in res.diag.items() if k not in ("gamma", "linearisations")},
         "timing_s": res.timing,
+        "traps": {"statement": res.traps.statement, "consensus": res.traps.consensus,
+                  "routes": res.traps.table().to_dict(orient="records")},
         "certainty": None if getattr(res, "certainty", None) is None else
         {k: v for k, v in res.certainty.as_dict().items() if k not in ("boot_samples",)},
     }
@@ -337,6 +347,6 @@ def export_all(res, outdir, style: Style = None, formats=None):
     paths["json"] = jp
     paths["html"] = html_report(res, figs, tabs, os.path.join(outdir, "report.html"))
     with open(os.path.join(outdir, "summary.txt"), "w") as fh:
-        fh.write(f"{res.headline}\nVerdict: {res.confidence}\n\n{res.statement}\n\n"
+        fh.write(f"{res.headline}\nVerdict: {res.confidence}\n\n{res.statement}\n\nTraps: {res.traps.statement}\n\n"
                  + "\n".join(f"- {r}" for r in res.recommendations) + "\n")
     return paths

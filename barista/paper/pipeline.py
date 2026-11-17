@@ -362,7 +362,25 @@ def benchmark_summary(pa):
             "verdict": None if r is None else r.confidence,
             "certainty": None if r is None or getattr(r, "certainty", None) is None else r.certainty.grade,
             "claim_compared": d.claim_used, "caption": d.caption[:300],
-            "agreement": d.agreement, "parameters": _param_comparison(pa, r), "notes": d.notes})
+            "agreement": d.agreement, "parameters": _param_comparison(pa, r), "notes": d.notes,
+            "traps": None if r is None else _trap_comparison(pa, r)})
+    return out
+
+
+def _trap_comparison(pa, r):
+    """BARISTA's trap density vs the value quoted in the paper (if any)."""
+    tr = r.traps
+    out = {"statement": tr.statement, **{k: v for k, v in tr.consensus.items() if not isinstance(v, str) or len(v) < 80}}
+    paper = (pa.reported or {}).get("trap_density_cm3")
+    if paper:
+        out["paper_Nt_cm3"] = paper
+        Nt = tr.consensus.get("Nt_cm3", np.nan)
+        if np.isfinite(Nt):
+            out["log10_ratio_barista_over_paper"] = float(np.log10(Nt / paper))
+            lo, hi = tr.consensus.get("lo_cm3", np.nan), tr.consensus.get("hi_cm3", np.nan)
+            out["paper_within_95%"] = bool((not np.isfinite(lo) or paper >= lo) and (not np.isfinite(hi) or paper <= hi))
+        elif "upper_bound_cm3" in tr.consensus:
+            out["paper_below_bound"] = bool(paper <= tr.consensus["upper_bound_cm3"])
     return out
 
 
@@ -379,6 +397,7 @@ def _summary(pa):
         cert = getattr(r, "certainty", None)
         lines.append(f"  • {d.plot_desc} [{d.source}]: BARISTA → {r.headline} — {r.confidence}"
                      + (f"; certainty {cert.grade}" if cert else "") + (f"; vs authors ({short_name(d.claim_used)}): {d.agreement}" if d.agreement else ""))
+        lines.append(f"      traps: {r.traps.statement}")
     return "\n".join(lines)
 
 

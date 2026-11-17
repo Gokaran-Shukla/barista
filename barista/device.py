@@ -64,6 +64,7 @@ class DeviceInfo:
     trap_depth_eV: Optional[float] = None     # E_c - E_t (SCLC) or Phi_t (PF/TAT)
     Nc_cm3: float = 2.5e19                    # effective DOS of the transport band at 300 K
     mobility_cm2Vs: Optional[float] = None
+    attempt_freq_Hz: Optional[float] = None   # ν₀ for trap-assisted tunnelling (default 1e12–1e14 s⁻¹)
     # magnetic / spin
     n_layers: Optional[int] = None            # number of barrier layers (e.g. CrSb layers); d = N·a
     exchange_meV: Optional[float] = None      # proximity exchange splitting guess (spin module)

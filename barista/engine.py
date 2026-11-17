@@ -112,6 +112,16 @@ class Result:
     def ranked(self):
         return sorted(self.assessments, key=lambda a: -a.score)
 
+    @property
+    def traps(self):
+        """Trap density / trap energy from the I–V data (recomputed once bootstrap samples exist)."""
+        key = id(self.certainty)
+        if getattr(self, "_traps_key", None) != key:
+            from .traps import analyse
+            self._traps = analyse(self)
+            self._traps_key = key
+        return self._traps
+
 
 # ---------------------------------------------------------------------------
 def _add(ev, keys, w, text):
