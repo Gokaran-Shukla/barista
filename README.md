@@ -144,6 +144,10 @@ User inputs that pin the regime:
 - `--system` presets supply the interlayer spacing and ordering temperature for graphene/CrSb/graphene,
   graphite/CrI₃/graphite, graphite/CrSBr/graphite and CoFeB/MgO/CoFeB.
 
+## Presentation
+
+A Beamer deck covering every feature, built from BARISTA's own figures: [`docs/presentation/barista_slides.pdf`](docs/presentation/barista_slides.pdf) (source and `build.sh` alongside).
+
 ## Install
 
 ```bash

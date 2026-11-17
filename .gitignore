@@ -5,3 +5,12 @@ build/
 dist/
 barista_output/
 .pytest_cache/
+*.aux
+*.log
+*.nav
+*.snm
+*.toc
+*.out
+*.vrb
+*.fls
+*.fdb_latexmk
