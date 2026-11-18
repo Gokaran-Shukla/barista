@@ -1,40 +1,65 @@
-% =============================================================================
+% =====================================================================================================
 %  BARISTA — BARrier Inference of Sequential, Tunnelling & Activated transport
-%  Feature presentation (LaTeX Beamer, 16:9).  Build:  ./build.sh   (or latexmk -pdf)
-%  Colour code used in every equation:
-%     bias V (green) · temperature T (purple) · thickness d (orange) · current I, J (blue)
-%     trap / state densities N (red) · energies Φ, E (brown) · spin quantities (magenta)
-%     operators: d/dln, exp, sinh, ∫, softmax ... (teal)
-% =============================================================================
+%  Feature presentation · LaTeX Beamer · 16:9 · compile with XeLaTeX (./build.sh)
+%
+%  Typeface: Inter (text, math letters and every figure).  Equation colour code:
+%     bias V, field F ........ green        temperature T ......... purple
+%     thickness d ............ orange       current I, J, G ....... blue
+%     densities N_t, g ....... red          energies Φ, E ......... brown
+%     spin quantities ........ magenta      operators (exp, ln, ∫, softmax ...) teal
+% =====================================================================================================
 \documentclass[aspectratio=169,10pt]{beamer}
-\usetheme[progressbar=frametitle,numbering=fraction,block=fill]{metropolis}
-\usepackage[T1]{fontenc}
-\usepackage[utf8]{inputenc}
-\usepackage{amsmath,amssymb,bm}
-\usepackage{booktabs,tabularx,array,multirow}
+\geometry{paperwidth=192mm,paperheight=108mm}   % 16:9, larger canvas so 10 pt type sits at a refined scale
+
+% ---------------------------------------------------------------- fonts
+\usepackage{fontspec}
+\usepackage{unicode-math}
+\setsansfont{Inter}[Scale=0.95,Ligatures=TeX]
+\newfontfamily\display{Inter Display}[Scale=0.95,Ligatures=TeX,UprightFont=* SemiBold,BoldFont=* Bold]
+\newfontfamily\displaylight{Inter Display}[Scale=0.95,Ligatures=TeX,UprightFont=* Light]
+\newfontfamily\semibold{Inter}[Scale=0.95,Ligatures=TeX,UprightFont=* SemiBold]
+\setmonofont{DejaVu Sans Mono}[Scale=0.80]
+\setmathfont{Latin Modern Math}
+\setmathfont{Inter}[range={up/{latin,Latin,num,greek,Greek}},Scale=0.95]
+\setmathfont{Inter Italic}[range={it/{latin,Latin,greek,Greek}},Scale=0.95]
+\setmathrm{Inter}[Scale=0.95,Ligatures=TeX]
+\usefonttheme{professionalfonts}
+
+% ---------------------------------------------------------------- packages
+\usepackage{booktabs,tabularx,array,colortbl,multirow}
 \usepackage{graphicx}
 \usepackage{tikz}
-\usetikzlibrary{arrows.meta,positioning,shapes.geometric,calc,fit,backgrounds}
-\usepackage{xcolor}
+\usetikzlibrary{arrows.meta,positioning,calc,decorations.pathmorphing,fit}
+\usepackage[most]{tcolorbox}
 \usepackage{listings}
 \graphicspath{{figs/}}
 
-% ---------------- palette -----------------------------------------------------
-\definecolor{navy}{HTML}{1F3A5F}
+% ---------------------------------------------------------------- palette
+\definecolor{navy}{HTML}{14284B}
 \definecolor{acc}{HTML}{2A78D6}
-\definecolor{soft}{HTML}{F4F3EF}
-\definecolor{ink2}{HTML}{52514E}
-\definecolor{okgreen}{HTML}{1B8A3A}
+\definecolor{acclight}{HTML}{E8F1FC}
+\definecolor{ink}{HTML}{1D1D1B}
+\definecolor{ink2}{HTML}{5F5E5A}
+\definecolor{ink3}{HTML}{9A9993}
+\definecolor{paper}{HTML}{F5F4F0}
+\definecolor{good}{HTML}{1B8A3A}
+\definecolor{warn}{HTML}{C77700}
 \definecolor{bad}{HTML}{C0392B}
 % physical quantities
-\definecolor{cV}{HTML}{1B8A3A}   % bias
-\definecolor{cT}{HTML}{6A3DA8}   % temperature
-\definecolor{cd}{HTML}{D9661F}   % thickness
-\definecolor{cI}{HTML}{1F5FBF}   % current
-\definecolor{cN}{HTML}{C0392B}   % densities (traps, states)
-\definecolor{cE}{HTML}{8A5A14}   % energies
-\definecolor{cS}{HTML}{B0307A}   % spin
-\definecolor{cO}{HTML}{0F7C7C}   % operators
+\definecolor{cV}{HTML}{1B8A3A}
+\definecolor{cT}{HTML}{6A3DA8}
+\definecolor{cd}{HTML}{D9661F}
+\definecolor{cI}{HTML}{1F5FBF}
+\definecolor{cN}{HTML}{C0392B}
+\definecolor{cE}{HTML}{8A5A14}
+\definecolor{cS}{HTML}{B0307A}
+\definecolor{cO}{HTML}{0F7C7C}
+% mechanism families
+\definecolor{fTun}{HTML}{2A78D6}
+\definecolor{fEmi}{HTML}{D9661F}
+\definecolor{fHop}{HTML}{6A3DA8}
+\definecolor{fSCL}{HTML}{C0392B}
+\definecolor{fMet}{HTML}{5F5E5A}
 
 \newcommand{\qV}{{\color{cV}V}}
 \newcommand{\qF}{{\color{cV}F}}
@@ -48,544 +73,691 @@
 \newcommand{\qS}[1]{{\color{cS}#1}}
 \newcommand{\op}[1]{{\color{cO}#1}}
 
-\setbeamercolor{frametitle}{bg=navy,fg=white}
-\setbeamercolor{progress bar}{fg=acc,bg=soft}
-\setbeamercolor{title separator}{fg=acc}
+% ---------------------------------------------------------------- beamer theme (custom)
+\setbeamersize{text margin left=13mm,text margin right=13mm}
+\setbeamertemplate{navigation symbols}{}
+\setbeamercolor{normal text}{fg=ink,bg=white}
+\setbeamercolor{structure}{fg=navy}
 \setbeamercolor{alerted text}{fg=acc}
-\setbeamercolor{block title}{bg=navy!12,fg=navy}
-\setbeamercolor{block body}{bg=soft}
-\setbeamercolor{block title example}{bg=okgreen!15,fg=okgreen!70!black}
-\setbeamercolor{block body example}{bg=okgreen!5}
-\setbeamercolor{block title alerted}{bg=bad!15,fg=bad}
-\setbeamercolor{block body alerted}{bg=bad!4}
-\setbeamerfont{frametitle}{size=\large,series=\bfseries}
-\setbeamertemplate{itemize item}{\color{acc}\small$\blacktriangleright$}
-\setbeamertemplate{itemize subitem}{\color{ink2}\tiny$\bullet$}
+\setbeamertemplate{itemize item}{\raisebox{0.2ex}{\color{acc}\rule{3.2pt}{3.2pt}}}
+\setbeamertemplate{itemize subitem}{\color{ink3}\textendash}
+\setbeamertemplate{enumerate item}{{\semibold\color{acc}\insertenumlabel}}
+\setlength{\leftmargini}{1.1em}
+\setbeamertemplate{itemize/enumerate body begin}{\raggedright\setlength{\itemsep}{3pt}}
 
-\lstset{basicstyle=\ttfamily\scriptsize,keywordstyle=\color{acc}\bfseries,commentstyle=\color{ink2}\itshape,
-        stringstyle=\color{cd},backgroundcolor=\color{soft},frame=single,rulecolor=\color{soft},
-        breaklines=true,columns=fullflexible,showstringspaces=false,xleftmargin=4pt,xrightmargin=4pt}
+\newcommand{\sectionlabel}{}
+\newcommand{\sectionno}{}
+\newcommand{\setsection}[2]{\renewcommand{\sectionno}{#1}\renewcommand{\sectionlabel}{#2}}
 
-\newcommand{\badge}[2][acc]{\tikz[baseline=(t.base)]\node[fill=#1!15,text=#1!80!black,rounded corners=2pt,
-  inner sep=2pt,font=\scriptsize\bfseries](t){#2};}
-\newcommand{\src}[1]{\par\vfill{\tiny\color{ink2}#1}}
+\setbeamertemplate{frametitle}{%
+  \vspace*{5.2mm}%
+  {\fontsize{7}{8}\selectfont\semibold\color{acc}\addfontfeatures{LetterSpace=8}%
+   \ifx\sectionno\empty\else\sectionno\enspace\textperiodcentered\enspace\fi\MakeUppercase{\sectionlabel}}\par
+  \vspace{1.2mm}%
+  {\display\fontsize{16}{18}\selectfont\color{navy}\insertframetitle}\par
+  \vspace{1.3mm}{\color{acc}\rule{12mm}{1.2pt}}\par\vspace{-1.5mm}}
 
-\title{BARISTA}
-\subtitle{BARrier Inference of Sequential, Tunnelling \& Activated transport}
-\author{Gokaran Shukla}
-\institute{King Abdullah University of Science and Technology (KAUST), Thuwal\\
-\href{https://github.com/Gokaran-Shukla/barista}{\texttt{github.com/Gokaran-Shukla/barista}} \quad version 0.3.0}
-\date{Transport-mechanism identification across thin barriers from $\qI(\qV,\qT,\qd)$ data\\[2pt] November 2026}
+\setbeamertemplate{footline}{%
+  \hbox to \paperwidth{\hspace{13mm}%
+    {\fontsize{6.5}{8}\selectfont\color{ink3}\semibold BARISTA\enspace{\normalfont\textbar\enspace Transport-mechanism identification across thin barriers}}%
+    \hfill{\fontsize{6.5}{8}\selectfont\color{ink3}\insertframenumber\,/\,\inserttotalframenumber}\hspace{13mm}}%
+  \vspace{5mm}}
 
+% ---------------------------------------------------------------- building blocks
+\newtcolorbox{card}[1][]{enhanced,colback=paper,colframe=paper,boxrule=0pt,arc=2mm,
+  left=3mm,right=3mm,top=2mm,bottom=2mm,fontupper=\small,before upper=\raggedright,#1}
+\newtcolorbox{cardt}[2][]{enhanced,colback=paper,colframe=paper,boxrule=0pt,arc=2mm,
+  left=3mm,right=3mm,top=1.5mm,bottom=2mm,fontupper=\small,before upper=\raggedright,
+  title={\semibold #2},coltitle=navy,colbacktitle=paper,toptitle=1.2mm,bottomtitle=-0.6mm,
+  fonttitle=\small,#1}
+\newcommand{\takeaway}[1]{%
+  \par\vfill
+  \begin{tcolorbox}[enhanced,colback=acclight,colframe=acclight,boxrule=0pt,arc=1.2mm,
+     left=3.5mm,right=3mm,top=1mm,bottom=1mm,
+     borderline west={2.2pt}{0pt}{acc},fontupper=\small]
+  {\semibold\color{acc}Key point\enspace}#1
+  \end{tcolorbox}\vspace{1.2mm}}
+\newcommand{\badge}[2][acc]{\tikz[baseline=(t.base)]\node[fill=#1!13,text=#1!85!black,rounded corners=1.4pt,
+  inner xsep=2.6pt,inner ysep=1.6pt,font=\fontsize{6.6}{8}\selectfont\semibold](t){#2};}
+\newcommand{\famdot}[2]{\tikz[baseline=-0.6ex]\fill[#1] (0,0) circle (2.1pt);\,{\color{ink}#2}}
+\newcommand{\src}[1]{\par\vspace{1mm}{\fontsize{6.5}{8}\selectfont\color{ink3}#1}}
+\newcommand{\kpi}[3]{%
+  \begin{tcolorbox}[enhanced,colback=paper,colframe=paper,boxrule=0pt,arc=2mm,height=21.5mm,valign=top,
+     left=3mm,right=2.5mm,top=2.5mm,bottom=1mm]
+  {\display\fontsize{22}{24}\selectfont\color{#3}#1}\par\vspace{1.4mm}
+  {\raggedright\fontsize{7.6}{9.6}\selectfont\color{ink2}#2\par}
+  \end{tcolorbox}}
+
+\lstset{basicstyle=\ttfamily\fontsize{7}{9}\selectfont,keywordstyle=\color{acc},commentstyle=\color{ink3},
+  stringstyle=\color{cd},backgroundcolor=\color{paper},frame=single,rulecolor=\color{paper},
+  framesep=2.5mm,xleftmargin=2.5mm,xrightmargin=2.5mm,breaklines=true,columns=fullflexible,
+  showstringspaces=false,aboveskip=1mm,belowskip=0mm}
+\lstdefinelanguage{shell}{morekeywords={barista,sbatch,export,source,conda,pip,python},sensitive=true,
+  morecomment=[l]{\#},morestring=[b]"}
+
+\renewcommand{\arraystretch}{1.18}
+
+\newcommand{\wf}[5]{\node[#2] (n#1) at (#1*2.79,0) {{\display\fontsize{12}{13}\selectfont\color{acc}#3}\\[1.2mm]{\semibold\fontsize{8.4}{10}\selectfont\color{navy}#4}\\[0.8mm]{\color{ink2}#5}};}
+% ---------------------------------------------------------------- section divider
+\newcommand{\divider}[3]{% number, title, contents
+  \setsection{#1}{#2}
+  {\setbeamertemplate{footline}{}
+  \begin{frame}[plain]
+  \begin{tikzpicture}[remember picture,overlay]
+    \fill[navy] (current page.south west) rectangle (current page.north east);
+    \node[anchor=north west,inner sep=0] at ($(current page.north west)+(13mm,-24mm)$)
+      {\display\fontsize{64}{64}\selectfont\color{acc}#1};
+    \node[anchor=north west,inner sep=0,text width=80mm] at ($(current page.north west)+(13mm,-54mm)$)
+      {\raggedright\hyphenpenalty=10000\exhyphenpenalty=10000\display\fontsize{24}{27}\selectfont\color{white}#2\par};
+    \draw[white!25,line width=0.4pt] ($(current page.north west)+(100mm,-22mm)$) -- ($(current page.south west)+(100mm,22mm)$);
+    \node[anchor=north west,inner sep=0,text width=72mm] at ($(current page.north west)+(108mm,-27mm)$)
+      {\raggedright\fontsize{9}{14}\selectfont\color{white!78}#3\par};
+  \end{tikzpicture}
+  \end{frame}}}
+
+% ================================================================================================
 \begin{document}
 
-% =============================================================================
-\begin{frame}
-  \titlepage
+% ------------------------------------------------------------------------------------- title
+{\setbeamertemplate{footline}{}
+\begin{frame}[plain]
+\begin{tikzpicture}[remember picture,overlay]
+  \fill[navy] (current page.south west) rectangle (current page.north east);
+  % ---- hero: band diagram of a biased barrier with three transport paths
+  \begin{scope}[shift={($(current page.south west)+(104mm,24mm)$)},x=11mm,y=11mm]
+    \fill[acc!35] (0,0) rectangle (1.9,2.0);
+    \fill[acc!35] (4.9,0) rectangle (6.8,1.25);
+    \draw[white!70,line width=0.6pt] (0,2.0) -- (1.9,2.0);
+    \draw[white!70,line width=0.6pt] (4.9,1.25) -- (6.8,1.25);
+    \fill[white!10] (1.9,0) -- (1.9,4.2) -- (4.9,3.0) -- (4.9,0) -- cycle;
+    \draw[white!80,line width=0.9pt] (1.9,0) -- (1.9,4.2) -- (4.9,3.0) -- (4.9,0);
+    \foreach \x/\y in {2.55/2.25, 3.35/1.95, 4.15/1.62} \fill[cN!80!white] (\x,\y) circle (2.6pt);
+    \draw[-{Stealth[length=2.4mm]},line width=1.3pt,acc!40!white] (1.2,2.0) -- (5.7,2.0);
+    \draw[-{Stealth[length=2.4mm]},line width=1.3pt,cd!75!white] (0.9,2.0) .. controls (1.6,5.2) and (4.2,4.4) .. (5.9,1.55);
+    \draw[-{Stealth[length=2.4mm]},line width=1.3pt,cT!45!white,decorate,
+          decoration={zigzag,segment length=2.4mm,amplitude=0.7mm,post length=2.5mm}]
+          (1.1,1.55) -- (2.55,2.25) -- (3.35,1.95) -- (4.15,1.62) -- (5.8,0.9);
+    \node[font=\fontsize{6.5}{7}\selectfont,white!65,anchor=north] at (0.95,-0.1) {metal};
+    \node[font=\fontsize{6.5}{7}\selectfont,white!65,anchor=north] at (3.4,-0.1) {barrier};
+    \node[font=\fontsize{6.5}{7}\selectfont,white!65,anchor=north] at (5.85,-0.1) {metal};
+    \draw[white!55,{Stealth[length=1.5mm]}-{Stealth[length=1.5mm]}] (6.95,1.25) -- node[right,font=\fontsize{6.5}{7}\selectfont]{\textit{eV}} (6.95,2.0);
+    \draw[white!55,dashed,line width=0.4pt] (6.8,2.0) -- (7.05,2.0);
+    % legend
+    \begin{scope}[shift={(0,-1.05)},font=\fontsize{6.8}{8}\selectfont]
+      \draw[line width=1.3pt,acc!40!white] (0,0) -- (0.45,0); \node[anchor=west,white!80] at (0.5,0) {coherent tunnelling};
+      \draw[line width=1.3pt,cd!75!white] (2.55,0) -- (3.0,0); \node[anchor=west,white!80] at (3.05,0) {thermionic emission};
+      \draw[line width=1.3pt,cT!45!white] (5.1,0) -- (5.55,0); \node[anchor=west,white!80] at (5.6,0) {hopping via traps};
+    \end{scope}
+  \end{scope}
+  % ---- text
+  \node[anchor=north west,inner sep=0] at ($(current page.north west)+(13mm,-21mm)$)
+    {\fontsize{7.5}{9}\selectfont\semibold\color{acc}\addfontfeatures{LetterSpace=10}SOFTWARE \textperiodcentered{} VERSION 0.3.0};
+  \node[anchor=north west,inner sep=0] at ($(current page.north west)+(12.2mm,-27mm)$)
+    {\display\fontsize{50}{52}\selectfont\color{white}BARISTA};
+  \node[anchor=north west,inner sep=0,text width=74mm] at ($(current page.north west)+(13mm,-47mm)$)
+    {\displaylight\fontsize{12.5}{16}\selectfont\color{white!88}BARrier Inference of Sequential,\\ Tunnelling \& Activated transport};
+  \node[anchor=north west,inner sep=0,text width=72mm] at ($(current page.north west)+(13mm,-64mm)$)
+    {\fontsize{8.5}{12}\selectfont\color{white!65}Identifying the charge-transport mechanism across thin barriers from current--voltage data, with quantified certainty};
+  \draw[acc,line width=1.2pt] ($(current page.south west)+(13mm,26mm)$) -- ++(12mm,0);
+  \node[anchor=north west,inner sep=0,text width=80mm] at ($(current page.south west)+(13mm,23mm)$)
+    {\fontsize{9}{12}\selectfont\color{white}\semibold Gokaran Shukla\\[0.5mm]
+     \normalfont\fontsize{7.5}{10}\selectfont\color{white!65}King Abdullah University of Science and Technology (KAUST)\\
+     github.com/Gokaran-Shukla/barista \enspace\textperiodcentered\enspace November 2026};
+\end{tikzpicture}
+\end{frame}}
+
+% ------------------------------------------------------------------------------------- at a glance
+\setsection{}{Overview}
+\begin{frame}{BARISTA at a glance}
+\vspace{2mm}
+\begin{columns}[T,onlytextwidth]
+\column{0.235\textwidth}\kpi{13}{transport mechanisms fitted globally in bias, temperature and thickness}{navy}
+\column{0.235\textwidth}\kpi{8\,/\,8}{published systems identified, parameters inside the 95\,\% intervals}{good}
+\column{0.235\textwidth}\kpi{4\,/\,4}{spin-transport benchmarks recovered, incl.\ graphene/CrSb/graphene}{cS}
+\column{0.235\textwidth}\kpi{${\leq}\,$2\,\%}{error when digitising data from published figures (vector: ${<}\,0.02$\,\%)}{acc}
+\end{columns}
+\vspace{2.5mm}
+\begin{columns}[T,onlytextwidth]
+\column{0.235\textwidth}\kpi{$N_t$}{trap density and trap energy predicted from the I--V data}{cN}
+\column{0.235\textwidth}\kpi{95\,\%}{intervals on every parameter: bootstrap, profile likelihood, asymptotic}{cT}
+\column{0.235\textwidth}\kpi{15}{figure types, ready for APS, Nature, ACS, IEEE, Elsevier, RSC}{cd}
+\column{0.235\textwidth}\kpi{1 node}{fully parallel: 40 cores on Ibex, 192 on Shaheen III}{ink2}
+\end{columns}
+\takeaway{One input --- a measurement file or a published paper --- gives the mechanism, its parameters and how certain both are.}
 \end{frame}
 
-% =============================================================================
-\begin{frame}{The problem}
-\begin{columns}[T]
+% ------------------------------------------------------------------------------------- problem
+\begin{frame}{Why the mechanism is hard to pin down}
+\begin{columns}[T,onlytextwidth]
 \column{0.53\textwidth}
 \begin{itemize}
-  \item A single $\qI(\qV)$ curve is usually compatible with \alert{several mechanisms}: tunnelling, hopping,
-        emission and space-charge currents can all look similar over a decade of bias.
-  \item Published assignments often rest on one linearised plot (``$\ln \qI$ vs $\sqrt{\qV}$ is straight'').
-  \item The distinguishing information is in the \alert{joint} dependence on bias, temperature and thickness.
-  \item Extracted parameters ($\qE{\Phi}$, $\qN$, $\varepsilon_r$, $\xi$, \dots) are only meaningful if the mechanism is right.
+  \item Over a decade of bias, \alert{tunnelling, hopping, emission and space-charge currents} can produce near-identical $\qI(\qV)$ curves.
+  \item Assignments often rest on a single linearised plot --- ``$\ln\qI$ vs $\sqrt{\qV}$ is straight, so Poole--Frenkel''.
+  \item The decisive information is in the \alert{joint} dependence on bias, temperature and thickness, and in the plausibility of the fitted parameters.
+  \item Barrier heights, trap densities and permittivities are meaningful only when the mechanism is right.
 \end{itemize}
-\column{0.44\textwidth}
-\begin{block}{What BARISTA does}
-\small
+\column{0.43\textwidth}
+\begin{cardt}{What BARISTA does}
 \begin{enumerate}
-  \item Reads any $\qI$--$\qV$ file (or a published paper).
-  \item Measures model-free fingerprints.
-  \item Fits 13 physical mechanisms globally.
-  \item Ranks them, states a verdict and how certain it is.
-  \item Extracts parameters with 95\,\% intervals, including the \alert{trap density}.
-  \item Exports manuscript-ready figures and tables.
+  \item Reads any $\qI$--$\qV$ file, or a published paper
+  \item Measures model-free fingerprints
+  \item Fits 13 mechanisms globally
+  \item Ranks them and states a verdict
+  \item Quantifies certainty and 95\,\% intervals
+  \item Predicts trap density and trap energy
+  \item Exports manuscript-ready results
 \end{enumerate}
-\end{block}
+\end{cardt}
 \end{columns}
-\src{Protocol and formula sheets follow G. Shukla, ``Charge transport mechanisms across thin barriers: theory and experimental fingerprints'' (2026).}
+\takeaway{BARISTA replaces ``one straight line'' with a global, falsifiable, statistically graded assignment.}
 \end{frame}
 
-% =============================================================================
-\begin{frame}{Pipeline}
+% ------------------------------------------------------------------------------------- workflow
+\begin{frame}{Workflow}
+\vspace{4mm}
 \centering
 \begin{tikzpicture}[
-  box/.style={draw=navy!60,fill=soft,rounded corners=3pt,minimum width=2.25cm,minimum height=1.05cm,
-              align=center,font=\scriptsize},
-  hl/.style={box,fill=acc!12,draw=acc},
-  arr/.style={-{Stealth[length=2.2mm]},thick,color=navy!70},
-  node distance=0.42cm and 0.42cm]
-\node[box] (in) {\textbf{Input}\\any file format\\or a PDF paper};
-\node[box,right=of in] (ds) {\textbf{Dataset}\\units, roles,\\$\qV,\qT,\qd$, state};
-\node[box,right=of ds] (fp) {\textbf{Fingerprints}\\$\gamma$, Rowell, $w(\qT)$,\\$E_a(\qV)$, collapse};
-\node[hl,right=of fp] (fit) {\textbf{Global fits}\\13 mechanisms\\+ 2-channel, $R_s$};
-\node[box,right=of fit] (sel) {\textbf{Selection}\\AIC, $k_\mathrm{eff}$, CV,\\plausibility};
-\node[hl,below=1.0cm of sel] (cert) {\textbf{Certainty}\\bootstrap, profiles,\\Vuong, residuals};
-\node[hl,left=of cert] (trap) {\textbf{Trap density}\\$\qN$, $\qE{E_t}$ from\\every route};
-\node[box,left=of trap] (spin) {\textbf{Spin}\\MR, proximity,\\Valet--Fert};
-\node[box,left=of spin] (out) {\textbf{Export}\\PDF/SVG figures,\\Excel, \LaTeX, HTML};
-\node[box,left=of out] (hpc) {\textbf{Parallel}\\all cores of\\one node};
-\draw[arr] (in)--(ds); \draw[arr] (ds)--(fp); \draw[arr] (fp)--(fit); \draw[arr] (fit)--(sel);
-\draw[arr] (sel)--(cert); \draw[arr] (cert)--(trap); \draw[arr] (trap)--(spin); \draw[arr] (spin)--(out);
-\draw[arr,dashed] (hpc)--(out);
+  st/.style={rectangle,rounded corners=2mm,fill=paper,minimum height=29mm,text width=21mm,
+             align=flush left,inner xsep=2.4mm,inner ysep=2.4mm,anchor=north west,
+             font=\fontsize{7.6}{9.6}\selectfont},
+  hl/.style={st,fill=acclight},
+  ar/.style={-{Stealth[length=1.8mm]},line width=0.8pt,ink3}]
+\wf{0}{st}{01}{Read}{Any file or a PDF paper; units and roles detected}
+\wf{1}{st}{02}{Fingerprint}{$\gamma$, Rowell ratio, $w(\qT)$, $\qE{E_a}(\qV)$, thickness collapse}
+\wf{2}{hl}{03}{Fit}{13 mechanisms, two channels, series resistance}
+\wf{3}{st}{04}{Decide}{AIC, cross-validation, evidence, plausibility}
+\wf{4}{hl}{05}{Certify}{Bootstrap, profiles, Vuong test, residuals}
+\wf{5}{st}{06}{Report}{Traps, spin, figures, tables, Methods text}
+\foreach \a/\b in {0/1,1/2,2/3,3/4,4/5}
+  \draw[ar] ($(n\a.east)+(0.3mm,0)$) -- ($(n\b.west)+(-0.3mm,0)$);
 \end{tikzpicture}
-\vspace{0.4cm}
 
-\small Three interfaces on the same engine: command line \texttt{barista}, Streamlit GUI, Python API.
+\vspace{5mm}
+\begin{columns}[T,onlytextwidth]
+\column{0.32\textwidth}\begin{card}\semibold Command line\\\normalfont\color{ink2}\texttt{barista analyze}, \texttt{spin}, \texttt{paper}, \texttt{synth}, \texttt{gui}\end{card}
+\column{0.32\textwidth}\begin{card}\semibold Graphical interface\\\normalfont\color{ink2}Streamlit app: upload, set inputs, browse figures\end{card}
+\column{0.32\textwidth}\begin{card}\semibold Python API\\\normalfont\color{ink2}\texttt{engine.analyze(...)} for notebooks and scripts\end{card}
+\end{columns}
+\takeaway{Every step runs on all cores of one node, and every result is exported.}
 \end{frame}
 
-% =============================================================================
-\section{Input data}
+% =====================================================================================================
+\divider{01}{Data in}{Universal file reader\\[1mm] Automatic detection of bias, temperature, thickness, area and magnetic state\\[1mm] Optional device information}
 
 \begin{frame}{Reads every kind of input file}
-\begin{columns}[T]
-\column{0.5\textwidth}
-\textbf{Formats}
-\begin{itemize}\small
-  \item Text: CSV, TSV, DAT, TXT --- any delimiter, decimal commas, instrument headers (Keithley, Keysight, \dots)
-  \item Excel / ODS (every sheet), JSON, HDF5, MATLAB \texttt{.mat}, NumPy, Parquet, Feather, Pickle
-  \item ZIP / TAR archives and whole folders
-  \item PDF papers and figure images (see \emph{Paper reader})
-\end{itemize}
-\textbf{Layouts}
-\begin{itemize}\small
-  \item long (one row per point), wide (one column per $\qT$ or $\qd$), paired $\qV$/$\qI$ columns
-\end{itemize}
-\column{0.47\textwidth}
-\textbf{Automatic role detection} from names and units
-\begin{itemize}\small
-  \item $\qV$ [V, mV], $\qI$ [A, mA, nA], $\qJ$ [A\,cm$^{-2}$]
-  \item $\qT$ [K, \textdegree C], $\qd$ [nm, \AA, layers $N$]
-  \item area, magnetic state (P/AP), angle, MR
-  \item values taken from file names / headers (e.g. \texttt{d=5nm\_T300K.csv})
-\end{itemize}
-\begin{exampleblock}{Coverage report}
-\small The dataset reports how many temperatures, thicknesses and curves were found --- this decides which
-tests are possible.
-\end{exampleblock}
+\begin{columns}[T,onlytextwidth]
+\column{0.31\textwidth}
+\begin{cardt}{Formats}
+CSV, TSV, DAT, TXT --- any delimiter, decimal commas, instrument headers\\[1mm]
+Excel and ODS (all sheets), JSON, HDF5, MATLAB, NumPy, Parquet, Feather, Pickle\\[1mm]
+ZIP / TAR archives and whole folders\\[1mm]
+PDF papers and figure images
+\end{cardt}
+\column{0.31\textwidth}
+\begin{cardt}{Layouts}
+\textbf{Long}: one row per point\\[1mm]
+\textbf{Wide}: one current column per temperature or thickness\\[1mm]
+\textbf{Paired}: alternating $\qV$/$\qI$ columns\\[1mm]
+Values read from file names and headers, e.g.\ \texttt{d=5nm\_T300K.csv}
+\end{cardt}
+\column{0.31\textwidth}
+\begin{cardt}{Roles and units}
+$\qV$ (V, mV) \quad $\qI$ (A, mA, nA)\\
+$\qJ$ (A\,cm$^{-2}$) \quad $\qT$ (K, \textdegree C)\\
+$\qd$ (nm, \AA) or layer number $N$\\
+area, magnetic state (P/AP), angle, MR\\[1mm]
+{\color{ink2}A coverage report lists the temperatures, thicknesses and curves found.}
+\end{cardt}
 \end{columns}
+\takeaway{Drop in the raw instrument export --- no reformatting needed.}
 \end{frame}
 
 \begin{frame}{Optional device information}
-\small
-All inputs are optional. By default they are starting values and consistency checks; with \texttt{--fix} they become hard constraints.
-\vspace{4pt}
+\small All inputs are optional: by default they are starting values and consistency checks; with \texttt{--fix} they become constraints.
+\vspace{2mm}
 
-\begin{columns}[T]
-\column{0.49\textwidth}
+\begin{columns}[T,onlytextwidth]
+\column{0.485\textwidth}
 \footnotesize
-\begin{tabularx}{\linewidth}{>{\ttfamily}l X}
+\begin{tabularx}{\linewidth}{>{\ttfamily\color{navy}}l X}
 \toprule
-\normalfont\bfseries option & \bfseries meaning\\
+\normalfont\semibold Option & \semibold Meaning\\
 \midrule
 --area            & junction area (\textmu m$^2$)\\
---thickness       & $\qd$ if not in the file\\
---temperature     & $\qT$ if not in the file\\
---eps-r, --n-opt  & static / optical permittivity\\
---barrier, --mass & $\qE{\Phi}$, $m^*/m_e$\\
---band-gap        & $\qE{E_g}$ (band-to-band)\\
---layer-spacing   & interlayer spacing $a$\\
+--thickness       & $\qd$, if not in the file\\
+--temperature     & $\qT$, if not in the file\\
+--eps-r, --n-opt  & static and optical permittivity\\
+--barrier, --mass & barrier height $\qE{\Phi}$, effective mass $m^*$\\
+--band-gap        & $\qE{E_g}$ for band-to-band tunnelling\\
+--material        & prior class: oxide, vdW, organic, \dots\\
 \bottomrule
 \end{tabularx}
-\column{0.49\textwidth}
+\column{0.485\textwidth}
 \footnotesize
-\begin{tabularx}{\linewidth}{>{\ttfamily}l X}
+\begin{tabularx}{\linewidth}{>{\ttfamily\color{navy}}l X}
 \toprule
-\normalfont\bfseries option & \bfseries meaning\\
+\normalfont\semibold Option & \semibold Meaning\\
 \midrule
---trap-density    & $\qN$ (cm$^{-3}$), checked vs prediction\\
+--trap-density    & $\qN$ (cm$^{-3}$), checked against the prediction\\
 --trap-depth      & $\qE{E_c-E_t}$ or $\qE{\Phi_t}$\\
---mobility        & $\mu$ (cm$^2$/Vs)\\
---attempt-freq    & $\nu_0$ (trap-assisted tunnelling)\\
---material        & prior class (oxide, vdW, organic, \dots)\\
---layers, --system & $N$ layers; system preset\\
---exchange, --ordering-T & spin starting values\\
+--mobility        & $\mu$ (cm$^2$\,V$^{-1}$\,s$^{-1}$)\\
+--attempt-freq    & $\nu_0$ for trap-assisted tunnelling\\
+--layers          & number of barrier layers $N$\\
+--system          & preset, e.g.\ graphene/CrSb/graphene\\
+--exchange, --ordering-T & spin-model starting values\\
 \bottomrule
 \end{tabularx}
 \end{columns}
-\vspace{6pt}
-
-System presets: \texttt{graphene/crsb/graphene} ($a=0.2735$\,nm), \texttt{graphite/cri3/graphite},
-\texttt{graphite/crsbr/graphite}, \texttt{cofeb/mgo/cofeb}.
+\takeaway{Supplying what you know sharpens the result; supplying nothing still gives a complete analysis.}
 \end{frame}
 
-% =============================================================================
-\section{Mechanisms and fingerprints}
+% =====================================================================================================
+\divider{02}{Physics and decision}{Thirteen mechanisms in one framework\\[1mm] Model-free fingerprints\\[1mm] Global fitting, scoring and verdicts\\[1mm] Worked example with two parallel channels}
 
-\begin{frame}{Thirteen mechanisms, one consistent framework}
-\scriptsize\renewcommand{\arraystretch}{0.9}
-\begin{tabularx}{\textwidth}{l X l}
+\begin{frame}{Thirteen mechanisms, one framework}
+\vspace{-1mm}
+\fontsize{7.4}{9}\selectfont
+\renewcommand{\arraystretch}{1.12}
+\begin{tabularx}{\textwidth}{@{}l X l@{}}
 \toprule
-\textbf{Mechanism} & \textbf{Model (global in $\qV,\qT,\qd$)} & \textbf{Key parameters}\\
+\semibold Mechanism & \semibold Model --- global in $\qV$, $\qT$, $\qd$ & \semibold Parameters\\
 \midrule
-Coherent tunnelling & Tsu--Esaki + WKB; covers direct, Fowler--Nordheim, thermionic-field, thermionic & $\qE{\Phi}$, $m^*$\\
-Trap-assisted tunnelling & two-step elastic, $\qJ\propto \qN\op{\int} T_1T_2/(T_1+T_2)\,\mathrm{d}x$ & $\qE{\Phi_t}$, $\qN$\\
-Glazman--Matveev & resonant chains, $\qG_N\propto \qT^{\,N-2/(N+1)}$ & $\xi$, $c_N$\\
-Band-to-band & Kane, $\qJ\propto \qF^2\op{\exp}(-B\qE{E_g}^{3/2}/\qF)$ & $\qE{E_g}$, $m^*$\\
-Schottky & $\qJ\propto \qT^2\op{\exp}[-(\qE{\Phi_B}-\beta_S\sqrt{\qF})/k\qT]$ & $\qE{\Phi_B}$, $\varepsilon_r$\\
-Poole--Frenkel & $\qJ\propto \qF\op{\exp}[-(\qE{\Phi_t}-\beta_{PF}\sqrt{\qF})/k\qT]$ & $\qE{\Phi_t}$, $\varepsilon_r$\\
-NN / ionic hopping & $\qJ\propto \op{\exp}(-\qE{E_a}/k\qT)\op{\sinh}(e\qF r/2k\qT)$ & $\qE{E_a}$, $r$\\
-Variable-range hopping & $\sigma\propto\op{\exp}[-(\qT_0/\qT)^p]$, field-assisted & $\qT_0$, $p$, $\xi$\\
-Polaron (Marcus) & $\op{\exp}[-(\lambda-ea\qF)^2/4\lambda k\qT]$ & $\lambda$, $a$\\
-Gaussian disorder & B\"assler GDM mobility & $\sigma$, $\Sigma$\\
-SCLC, discrete trap & \alert{exact drift--Poisson}, one level, ohmic $\to\theta\qV^2/\qd^3\to$ TFL $\to$ Mott--Gurney & $\qN$, $\qE{E_c-E_t}$, $\mu$\\
-SCLC, exponential & Mark--Helfrich, $\qJ\propto \qV^{\,l+1}/\qd^{\,2l+1}$ & $\qN$, $k\qT_c$\\
-Ohmic / metallic & $\qG(\qT)=\qG_0[1-\alpha(\qT-\qT_0)]$ & $\alpha$\\
+\famdot{fTun}{Coherent tunnelling} & Tsu--Esaki + WKB: direct, Fowler--Nordheim, thermionic-field and thermionic in one integral & $\qE{\Phi}$, $m^*$\\
+\famdot{fTun}{Trap-assisted tunnelling} & two-step elastic: $\qJ\propto\qN\op{\int}_0^{\qd}\frac{T_1T_2}{T_1+T_2}\,dx$ & $\qE{\Phi_t}$, $\qN$\\
+\famdot{fTun}{Glazman--Matveev chains} & resonant hopping chains, $\qG_N\propto\qT^{\,N-2/(N+1)}$ & $\xi$, $c_N$\\
+\famdot{fTun}{Band-to-band (Zener)} & Kane: $\qJ\propto\qF^2\op{\exp}(-B\,\qE{E_g}^{3/2}/\qF)$ & $\qE{E_g}$, $m^*$\\
+\famdot{fEmi}{Schottky emission} & $\qJ\propto\qT^2\op{\exp}[-(\qE{\Phi_B}-\beta_S\sqrt{\qF})/k\qT]$ & $\qE{\Phi_B}$, $\varepsilon_r$\\
+\famdot{fEmi}{Poole--Frenkel} & $\qJ\propto\qF\op{\exp}[-(\qE{\Phi_t}-\beta_{PF}\sqrt{\qF})/k\qT]$ & $\qE{\Phi_t}$, $\varepsilon_r$\\
+\famdot{fHop}{Nearest-neighbour hopping} & $\qJ\propto\op{\exp}(-\qE{E_a}/k\qT)\,\op{\sinh}(e\qF r/2k\qT)$ & $\qE{E_a}$, $r$\\
+\famdot{fHop}{Variable-range hopping} & $\sigma\propto\op{\exp}[-(\qT_0/\qT)^p]$, field-assisted & $\qT_0$, $p$, $\xi$\\
+\famdot{fHop}{Polaron (Marcus)} & $\op{\exp}[-(\lambda-ea\qF)^2/4\lambda k\qT]$ & $\lambda$, $a$\\
+\famdot{fHop}{Gaussian disorder} & B\"assler disorder-model mobility & $\sigma$, $\Sigma$\\
+\famdot{fSCL}{SCLC, discrete trap} & exact drift--Poisson: ohmic $\to$ $\theta\qV^2/\qd^3$ $\to$ trap-filled limit $\to$ Mott--Gurney & $\qN$, $\qE{E_c-E_t}$, $\mu$\\
+\famdot{fSCL}{SCLC, exponential tail} & Mark--Helfrich: $\qJ\propto\qV^{\,l+1}/\qd^{\,2l+1}$ & $\qN$, $k\qT_c$\\
+\famdot{fMet}{Ohmic / metallic} & $\qG(\qT)=\qG_0[1-\alpha(\qT-\qT_0)]$ & $\alpha$\\
 \bottomrule
 \end{tabularx}
-\vspace{2pt}
+\vspace{1mm}
 
-Each model carries plausibility checks (e.g.\ $\varepsilon_r$ vs $n^2$, physical mass, trap depth vs barrier).
+\famdot{fTun}{tunnelling}\quad \famdot{fEmi}{emission}\quad \famdot{fHop}{hopping}\quad \famdot{fSCL}{space charge}\quad \famdot{fMet}{metallic}
+\hfill{\color{ink2}every model carries physical plausibility checks}
 \end{frame}
 
 \begin{frame}{Model-free fingerprints, measured before any fit}
-\begin{columns}[T]
-\column{0.42\textwidth}
+\begin{columns}[T,onlytextwidth]
+\column{0.40\textwidth}
 \small
 \begin{itemize}
-  \item Logarithmic derivative
-  \[\gamma=\op{\frac{\mathrm{d}\ln}{\mathrm{d}\ln}}\frac{\qI}{\qV}\ \text{(ohmic 1, SCLC 2, TFL peak)}\]
+  \item Logarithmic derivative\\[0.6mm]
+        $\gamma=\op{\dfrac{d\ln}{d\ln}}\dfrac{\qI}{\qV}$:\ ohmic 1, SCLC 2, trap-filled peak
   \item Rowell ratio $\qG(\qT_\mathrm{hi})/\qG(\qT_\mathrm{lo})$
-  \item Zabrodskii $w=\op{\frac{\mathrm{d}\ln}{\mathrm{d}\ln}}\frac{\sigma}{\qT}=p(\qT_0/\qT)^p$
-  \item Arrhenius $\qE{E_a}(\qV)$ vs $\sqrt{\qV}$; slope gives $\varepsilon_r$
-  \item Thickness collapse: $\qJ$ vs $\qV/\qd$ (field) or $\qJ/\qd$ vs $\qV/\qd^2$ (SCLC)
-  \item FN transition voltage, hysteresis, NDR, zero-bias gap
+  \item Zabrodskii $w=\op{\dfrac{d\ln}{d\ln}}\dfrac{\sigma}{\qT}=p\,(\qT_0/\qT)^p$
+  \item Arrhenius $\qE{E_a}(\qV)$ vs $\sqrt{\qV}$; the slope gives $\varepsilon_r$
+  \item Thickness collapse: $\qJ$ vs $\qV/\qd$ (field-driven) or $\qJ/\qd$ vs $\qV/\qd^{\,2}$ (SCLC)
+  \item Fowler--Nordheim transition voltage, hysteresis, NDR, zero-bias gap
 \end{itemize}
-\column{0.56\textwidth}
-\includegraphics[width=\linewidth]{mixed_fig3.pdf}
+\column{0.57\textwidth}
+\centering\includegraphics[width=0.94\linewidth]{mixed_fig3_fingerprints.pdf}
 \end{columns}
+\takeaway{Fingerprints narrow the candidates and feed the score --- they never rely on a fitted model.}
 \end{frame}
 
-% =============================================================================
-\section{Fitting and decision}
-
-\begin{frame}{Global fitting and model selection}
-\begin{columns}[T]
-\column{0.5\textwidth}
-\small
-\textbf{Fitting}
-\begin{itemize}
-  \item One parameter set for \emph{all} curves; residuals in $\ln\qI$
-  \item Prefactor profiled analytically; multi-start trust-region least squares
-  \item Effective parameter count $k_\mathrm{eff}$ from the Jacobian rank
-  \item Cross-validation: leave one $\qT$ (or $\qd$) out and predict it
-  \item Two-channel $A\parallel B$ models and a series-resistance model
-\end{itemize}
+\begin{frame}{Global fitting, scoring and verdicts}
+\begin{columns}[T,onlytextwidth]
 \column{0.47\textwidth}
-\small
-\textbf{Score and support}
-\[
-S_m=-\tfrac12\op{\min}(\Delta\mathrm{AIC}_m,80)+\mathcal{E}_m+\mathcal{P}_m+\mathcal{C}_m
-\]
-\[
-p_m=\op{\mathrm{softmax}}(S_m)
-\]
-\scriptsize $\mathcal{E}$: fingerprint evidence; $\mathcal{P}$: plausibility; $\mathcal{C}$: cross-validation.
-
-\vspace{4pt}
-\small\textbf{Verdicts}\\[2pt]
-\badge[okgreen]{IDENTIFIED} \badge{MOST LIKELY} \badge[cd]{LEADING CANDIDATE} \badge[bad]{EXCLUDED}\\[3pt]
-\scriptsize Bias-only data are capped at ``leading candidate --- not identifiable from bias alone'';
-IDENTIFIED requires a good fit.
+\begin{cardt}{Fitting}
+\begin{itemize}
+  \item One parameter set for \emph{all} curves, residuals in $\ln\qI$
+  \item Analytic prefactor; multi-start least squares
+  \item Effective parameter count $k_\mathrm{eff}$ from the Jacobian
+  \item Leave one $\qT$ or $\qd$ out and predict it
+  \item Two parallel channels; series resistance
+\end{itemize}
+\end{cardt}
+\column{0.49\textwidth}
+\begin{cardt}{Score and support}
+\vspace{-1mm}
+\[S_m=-\tfrac12\,\op{\min}(\Delta\mathrm{AIC}_m,\,80)+\mathcal{E}_m+\mathcal{P}_m+\mathcal{C}_m\]
+{\footnotesize\color{ink2}support $p_m=\op{\mathrm{softmax}}(S_m)$; \ $\mathcal{E}$ fingerprint evidence, $\mathcal{P}$ plausibility, $\mathcal{C}$ cross-validation}
+\end{cardt}
+\vspace{0.5mm}
+\begin{cardt}{Verdicts}
+\badge[good]{IDENTIFIED}\,\badge{MOST LIKELY}\,\badge[warn]{LEADING CANDIDATE}\,\badge[bad]{EXCLUDED}\\[1.2mm]
+{\footnotesize\color{ink2}IDENTIFIED requires a good fit; bias-only data are capped at ``leading candidate --- not identifiable from bias alone''.}
+\end{cardt}
 \end{columns}
+\takeaway{A verdict is only as strong as the data allow; BARISTA names the measurement that would strengthen it.}
 \end{frame}
 
-\begin{frame}{Example: two channels in Al/AlO$_x$ junctions}
+\begin{frame}{Example: two parallel channels in Al/AlO$_x$ junctions}
 \centering
-\includegraphics[height=0.30\textheight]{mixed_fig1.pdf}\\[2pt]
-\includegraphics[height=0.38\textheight]{mixed_fig4.pdf}
-\src{Example data shipped in \texttt{examples/mixed\_channels}. Top: global fit of the assigned model; bottom: $\Delta$AIC of every candidate and residuals.}
+\includegraphics[width=0.75\linewidth]{mixed_fig1_iv_fit.pdf}
+\vspace{1mm}
+
+\begin{columns}[T,onlytextwidth]
+\column{0.49\textwidth}
+\begin{card}\semibold Channel A --- coherent tunnelling\\\normalfont
+$\qE{\Phi}=1.202\pm0.002$\,eV,\ \ $m^*=0.399\pm0.001\,m_e$
+\end{card}
+\column{0.49\textwidth}
+\begin{card}\semibold Channel B --- nearest-neighbour hopping\\\normalfont
+$\qE{E_a}=0.198\pm0.001$\,eV,\ \ $r=0.293\pm0.007$\,nm
+\end{card}
+\end{columns}
+\takeaway{No single law fits (rms 101\,\%); two channels in parallel do (rms 3.8\,\%, $\Delta$AIC $=3496$).}
 \end{frame}
 
-\begin{frame}{Regimes and falsifiable predictions}
-\begin{columns}[c]
-\column{0.62\textwidth}
-\includegraphics[width=\linewidth]{mixed_fig5.pdf}
-\column{0.36\textwidth}
-\includegraphics[width=\linewidth]{mixed_fig6.pdf}
+\begin{frame}{Every candidate compared}
+\centering
+\includegraphics[width=0.76\linewidth]{mixed_fig4_model_comparison.pdf}
+\src{(a) $\Delta$AIC of every single mechanism relative to the two-channel model. (b) Relative residuals of the assigned model, coloured by temperature.}
+\takeaway{The gap to the best single mechanism is more than three orders of magnitude in $\Delta$AIC.}
+\end{frame}
+
+\begin{frame}{Where each channel carries the current --- and what comes next}
+\begin{columns}[c,onlytextwidth]
+\column{0.64\textwidth}
+\includegraphics[width=\linewidth]{mixed_fig5_regime_map.pdf}
+\column{0.33\textwidth}
+\includegraphics[width=\linewidth]{mixed_fig6_prediction.pdf}
 \end{columns}
-\vspace{4pt}
+\vspace{2mm}
 \small
 \begin{itemize}
-  \item Sub-regime map: which limit (direct / FN / thermionic, or which channel) dominates at each $(\qV,\qT)$.
-  \item Extrapolation outside the measured window --- a prediction you can test with one more measurement.
-  \item The report also proposes the \alert{next measurements} that would separate the remaining candidates.
+  \item \textbf{Channel map}: tunnelling dominates the thin barriers; hopping takes over at 3\,nm above $\sim$200\,K.
+  \item \textbf{Prediction} outside the measured window --- a falsifiable test with one more measurement.
 \end{itemize}
+\takeaway{The report proposes the next measurement that would best separate the remaining candidates.}
 \end{frame}
 
-% =============================================================================
-\section{How certain is the assignment?}
+% =====================================================================================================
+\divider{03}{How certain is the assignment?}{Stratified bootstrap and model-selection probabilities\\[1mm] Profile likelihood and parameter intervals\\[1mm] Window stability and residual diagnostics\\[1mm] Vuong and likelihood-ratio tests}
 
 \begin{frame}{Statistical certainty analysis}
-\begin{columns}[T]
-\column{0.48\textwidth}
+\begin{columns}[T,onlytextwidth]
+\column{0.40\textwidth}
 \small
 \begin{itemize}
-  \item \textbf{Stratified bootstrap} (resampling within each curve): probability that each mechanism is selected, with Wilson 95\,\% intervals
+  \item \textbf{Stratified bootstrap}: probability that each mechanism is selected, with Wilson 95\,\% intervals
   \item \textbf{Akaike weights} and \textbf{BIC posteriors}
-  \item \textbf{Profile likelihood}: $\Delta\chi^2 = 1$ and $3.84$
+  \item \textbf{Profile likelihood} at $\Delta\chi^2=1$ and $3.84$
   \item Asymptotic intervals with Student-$t$
-  \item \textbf{Fit-window stability} of each parameter
-  \item Residual tests: Shapiro--Wilk, Durbin--Watson, runs
-  \item \textbf{Vuong} (non-nested) and likelihood-ratio tests
+  \item \textbf{Window stability} of every parameter
+  \item Residuals: Shapiro--Wilk, Durbin--Watson, runs
+  \item \textbf{Vuong} and likelihood-ratio tests
 \end{itemize}
-\vspace{2pt}
-Overall grade: \badge[bad]{LOW} \badge[cd]{MODERATE} \badge{HIGH} \badge[okgreen]{VERY HIGH}
-\column{0.5\textwidth}
-\includegraphics[width=\linewidth]{sclc_fig8_model_certainty.pdf}
+\vspace{1mm}
+\badge[bad]{LOW}\enspace\badge[warn]{MODERATE}\enspace\badge{HIGH}\enspace\badge[good]{VERY HIGH}
+\column{0.57\textwidth}
+\centering\includegraphics[width=\linewidth]{sclc_fig8_model_certainty.pdf}
 \end{columns}
+\takeaway{Space-charge-limited current with a discrete trap is selected in 100\,\% of bootstrap replicas.}
 \end{frame}
 
-\begin{frame}{Parameter intervals that can be trusted}
-\begin{columns}[c]
-\column{0.38\textwidth}
-\includegraphics[width=\linewidth]{sclc_fig9_parameter_uncertainty.pdf}
-\column{0.58\textwidth}
-\includegraphics[width=0.92\linewidth]{sclc_fig10_profile_likelihood.pdf}\\[4pt]
-\includegraphics[width=0.92\linewidth]{sclc_fig11_stability_residuals.pdf}
+\begin{frame}{Parameter intervals you can quote}
+\begin{columns}[c,onlytextwidth]
+\column{0.40\textwidth}
+\centering\includegraphics[height=0.62\textheight]{sclc_fig9_parameter_uncertainty.pdf}
+\column{0.57\textwidth}
+\includegraphics[width=\linewidth]{sclc_fig10_profile_likelihood.pdf}\\[3mm]
+\small
+\begin{itemize}
+  \item \textbf{Corner plot}: bootstrap distributions and correlations, with the bootstrap and profile 95\,\% limits
+  \item \textbf{Profiles}: $\Delta\chi^2$ against each parameter, with the 68\,\% and 95\,\% thresholds
+\end{itemize}
 \end{columns}
-\src{SCLC device with planted $\qN=10^{17}$\,cm$^{-3}$, $\qE{E_c-E_t}=0.35$\,eV: bootstrap distributions and correlations, profile likelihoods, window stability and residual normality.}
+\takeaway{Bootstrap and profile intervals agree; correlations between parameters are shown, not hidden.}
 \end{frame}
 
-% =============================================================================
-\section{Trap density from the I--V data}
+\begin{frame}{Is the result robust?}
+\centering
+\includegraphics[width=0.72\linewidth]{sclc_fig11_stability_residuals.pdf}
+\src{(a) Shift of each parameter when temperatures, thicknesses or half of each bias sweep are left out, in units of its standard error. (b) Normal quantile plot of the residuals with Shapiro--Wilk and Durbin--Watson statistics.}
+\takeaway{All parameters stay within $\pm1\sigma$ when any part of the data is removed; residuals are normal and uncorrelated.}
+\end{frame}
+
+% =====================================================================================================
+\divider{04}{Trap density\\ from I--V data}{Every route the data allow\\[1mm] Trap energy alongside the density\\[1mm] Upper bounds when no traps are needed\\[1mm] Validation against known truth}
 
 \begin{frame}{Trap density and trap energy --- whatever the mechanism}
-\scriptsize
-\begin{tabularx}{\textwidth}{l X l}
+\vspace{-1mm}
+\fontsize{7.6}{9.4}\selectfont
+\renewcommand{\arraystretch}{1.25}
+\begin{tabularx}{\textwidth}{@{}l X l@{}}
 \toprule
-\textbf{Mechanism} & \textbf{Route to $\qN$} & \textbf{Energy}\\
+\semibold Mechanism & \semibold Route to the trap density $\qN$ & \semibold Energy\\
 \midrule
-SCLC, single level & exact drift--Poisson fit & $\qE{E_c-E_t}$\\
-SCLC, any & model-free trap-filled limit $\qN=\dfrac{2\varepsilon\,\qV_\mathrm{TFL}}{e\,\qd^{\,2}}$ from the $\gamma$ peak; test $\qV_\mathrm{TFL}\propto\qd^{\,2}$ & ---\\[4pt]
-SCLC, exponential tail & total $\qN$ (Mark--Helfrich) & $k\qT_c$\\
-Trap-assisted tunnelling & $\qN=C/(e\nu_0)$, $\nu_0=10^{12}$--$10^{14}$\,s$^{-1}$ & $\qE{\Phi_t}$\\
-NN / ionic / polaron hopping & site density $\qN\approx 3/(4\pi r^3)$ from the hop length & $\qE{E_a}$\\
-Variable-range hopping & $g(\qE{E_F})=\dfrac{21.2}{k\qT_0\,\xi^3}$; states in the hopping band $g\,\Delta\qE{E_h}(\qT)$ & $\Delta\qE{E_h}$\\[4pt]
-Poole--Frenkel & depth exact; $\qN<1/(2x_m)^3$; absolute $\qN$ with $\mu$ & $\qE{\Phi_t}$\\
-Coherent, Schottky, metallic & \alert{no traps needed}; 95\,\% upper bound from a parallel TAT channel & ---\\
+\famdot{fSCL}{SCLC, single level} & exact drift--Poisson fit & $\qE{E_c-E_t}$\\
+\famdot{fSCL}{SCLC, any} & model-free trap-filled limit $\qN=2\varepsilon\qV_\mathrm{TFL}/(e\qd^{\,2})$ from the $\gamma$ peak, with the test $\qV_\mathrm{TFL}\propto\qd^{\,2}$ & ---\\
+\famdot{fSCL}{SCLC, exponential tail} & total density of the tail (Mark--Helfrich) & $k\qT_c$\\
+\famdot{fTun}{Trap-assisted tunnelling} & $\qN=C/(e\nu_0)$ from the fitted prefactor, $\nu_0=10^{12}$--$10^{14}$\,s$^{-1}$ & $\qE{\Phi_t}$\\
+\famdot{fHop}{NN, ionic, polaron hopping} & site density $\qN\approx3/(4\pi r^3)$ from the fitted hop length & $\qE{E_a}$\\
+\famdot{fHop}{Variable-range hopping} & $g(\qE{E_F})=21.2/(k\qT_0\xi^3)$, and the states in the hopping band, $g\,\Delta\qE{E_h}(\qT)$ & $\Delta\qE{E_h}$\\
+\famdot{fEmi}{Poole--Frenkel} & depth exact; $\qN<1/(2x_m)^3$; absolute $\qN$ when the mobility is supplied & $\qE{\Phi_t}$\\
+\famdot{fMet}{Coherent, Schottky, metallic} & \alert{no traps needed}: 95\,\% upper bound from a parallel trap-assisted channel & ---\\
 \bottomrule
 \end{tabularx}
-\vspace{4pt}
-
-\small 95\,\% intervals from the bootstrap; support-weighted consensus; a supplied \texttt{--trap-density} is
-checked; for papers, compared with the value the authors quote.
+\takeaway{95\,\% intervals come from the bootstrap; a supplied trap density is checked, and for papers compared with the authors' value.}
 \end{frame}
 
-\begin{frame}{Trap density: validation}
+\begin{frame}{Trap density: validation against known truth}
 \centering
-\includegraphics[width=0.86\linewidth]{sclc_fig15_trap_density.pdf}
-\vspace{4pt}
+\includegraphics[width=0.80\linewidth]{sclc_fig15_trap_density.pdf}
+\vspace{2mm}
 
-\scriptsize
-\begin{tabular}{lccc}
+\fontsize{7.8}{9.5}\selectfont
+\renewcommand{\arraystretch}{1.12}
+\begin{tabular}{@{}lcccc@{}}
 \toprule
-Mechanism (synthetic, known truth) & true $\qN$ (cm$^{-3}$) & recovered & energy true $\to$ recovered\\
+\semibold Mechanism (synthetic data) & \semibold True $\qN$ (cm$^{-3}$) & \semibold Recovered & \semibold True energy & \semibold Recovered\\
 \midrule
-SCLC, single level & $1.0\times10^{17}$ & $1.0\times10^{17}$ (fit) / $9.5\times10^{16}$ ($\gamma$ peak) & 0.35 $\to$ 0.350 eV\\
-SCLC, exponential tail & $3.2\times10^{17}$ & $3.2\times10^{17}$ & 77.6 $\to$ 77.5 meV\\
-Trap-assisted tunnelling & $6.2\times10^{11}$ & $6.2\times10^{11}$ & 1.0 $\to$ 1.0 eV\\
-NN hopping & $7.1\times10^{19}$ & $7.1\times10^{19}$ & 0.12 $\to$ 0.12 eV\\
-VRH, $g(E_F)$ (eV$^{-1}$cm$^{-3}$) & $2.5\times10^{20}$ & $2.5\times10^{20}$ & ---\\
+SCLC, single level & $1.0\times10^{17}$ & $1.0\times10^{17}$ (fit) \textperiodcentered{} $9.5\times10^{16}$ ($\gamma$ peak) & 0.35 eV & 0.350 eV\\
+SCLC, exponential tail & $3.2\times10^{17}$ & $3.2\times10^{17}$ & 77.6 meV & 77.5 meV\\
+Trap-assisted tunnelling & $6.2\times10^{11}$ & $6.2\times10^{11}$ & 1.00 eV & 1.00 eV\\
+Nearest-neighbour hopping & $7.1\times10^{19}$ & $7.1\times10^{19}$ & 0.12 eV & 0.12 eV\\
+Variable-range hopping, $g(E_F)$ & $2.5\times10^{20}$ eV$^{-1}$ & $2.5\times10^{20}$ eV$^{-1}$ & --- & ---\\
 \bottomrule
 \end{tabular}
 \end{frame}
 
-% =============================================================================
-\section{Spin-dependent transport}
+% =====================================================================================================
+\divider{05}{Spin-dependent transport}{Jullière, layered spin filter, spin-dependent hopping\\[1mm] Interface polarisation from the exchange field\\[1mm] Valet--Fert drift--diffusion\\[1mm] Graphene/CrSb/graphene with a chosen layer number}
 
 \begin{frame}{Spin-dependent transport models}
-\begin{columns}[T]
-\column{0.52\textwidth}
+\begin{columns}[T,onlytextwidth]
+\column{0.55\textwidth}
 \small
 \begin{itemize}
-  \item \textbf{Jullière}: $\mathrm{TMR}=\dfrac{2\qS{P_1P_2}}{1-\qS{P_1P_2}}$
-  \item \textbf{Layered spin filter} ($N$ layers, spacing $a$):\\
-        $1+\mathrm{MR}=\op{\cosh}(Na\qS{\Delta\kappa})$ \ (even $N$)\\
-        $1+\mathrm{MR}=\op{\cosh}(Na\qS{\Delta\kappa})/\op{\cosh}(a\qS{\Delta\kappa})$ \ (odd $N$)
-  \item \textbf{Spin-dependent hopping}: $\mathrm{MR}=\op{\exp}(\Delta\qE{E_a}/k\qT)-1$
-  \item \textbf{Interface proximity polarisation}: spin-split Dirac-cone electrodes, exchange $\qS{\Delta}$, chemical potential $\mu$, broadening $\Gamma$, $\qS{\Delta}(\qT)$ vanishing at $\qT_N$
-  \item \textbf{Valet--Fert / Fert--Jaffrès} exact CPP drift--diffusion: bulk $\beta$, interface $\gamma$, spin-diffusion length $\qS{l_{sf}}$
+  \item \textbf{Jullière}\quad $\mathrm{TMR}=2\qS{P_1P_2}/(1-\qS{P_1P_2})$
+  \item \textbf{Layered spin filter}, $N$ layers of spacing $a$\\
+        $1+\mathrm{MR}=\op{\cosh}(Na\,\qS{\Delta\kappa})$ for even $N$, \ $\op{\cosh}(Na\,\qS{\Delta\kappa})/\op{\cosh}(a\,\qS{\Delta\kappa})$ for odd $N$
+  \item \textbf{Spin-dependent hopping}\quad $\mathrm{MR}=\op{\exp}(\Delta\qE{E_a}/k\qT)-1$
+  \item \textbf{Interface proximity polarisation}: spin-split Dirac-cone electrodes with exchange $\qS{\Delta}$, chemical potential $\mu$, broadening $\Gamma$; $\qS{\Delta}(\qT)$ vanishes at $\qT_N$
+  \item \textbf{Valet--Fert / Fert--Jaffrès}: exact CPP drift--diffusion with bulk $\beta$, interface $\gamma$ and spin-diffusion length $\qS{l_{sf}}$
 \end{itemize}
-\column{0.45\textwidth}
-\begin{block}{Graphene/CrSb/graphene}
+\column{0.41\textwidth}
+\begin{cardt}{Graphene/CrSb/graphene}
+\begin{itemize}
+  \item Choose the number of CrSb layers (\texttt{--layers})
+  \item Supply or fit the trap density
+  \item P/AP or angle columns start the spin analysis automatically
+  \item MR versus $\qV$, $\qT$ and $N$ separates \emph{interface} polarisation from \emph{barrier} spin filtering
+\end{itemize}
+\end{cardt}
+\end{columns}
+\takeaway{The layer-number and bias dependence of MR decide where the spin polarisation originates.}
+\end{frame}
+
+\begin{frame}{Interface polarisation from the proximity exchange field}
+\begin{columns}[T,onlytextwidth]
+\column{0.63\textwidth}
+\vspace{0pt}\includegraphics[width=0.97\linewidth]{spin_fig12_spin_MR_bias.pdf}
+\column{0.34\textwidth}
+\vspace{0pt}\includegraphics[width=\linewidth]{spin_fig14_spin_models.pdf}
+\end{columns}
+\vspace{2mm}
+\begin{columns}[T,onlytextwidth]
+\column{0.63\textwidth}
 \small
 \begin{itemize}
-  \item choose the number of CrSb layers $N$ (\texttt{--layers})
-  \item supply or fit the trap density
-  \item P/AP (or angle) columns trigger the spin analysis automatically
-  \item MR vs $\qV$, $\qT$ and $N$ separate \emph{interface} from \emph{barrier} spin filtering
+  \item Synthetic graphene/CrSb/graphene junctions, $N=4$--8 CrSb layers, $\qT=10$--300\,K
+  \item MR changes sign near zero bias (spin-split Dirac cones) and is set by the interface, not by $N$
 \end{itemize}
-\end{block}
+\column{0.34\textwidth}
+\begin{card}
+\semibold Recovered vs hidden truth\\[0.6mm]\normalfont
+$\qS{\Delta}=19.3\ [17.4,\,20.7]$\,meV {\color{ink2}(20)}\\
+$\mu=14.7\ [13.8,\,16.0]$\,meV {\color{ink2}(15)}
+\end{card}
 \end{columns}
+\takeaway{Interface proximity polarisation is selected with 100\,\% support over the four alternative spin models.}
 \end{frame}
 
-\begin{frame}{Interface polarisation from the exchange field}
+\begin{frame}{Layer-number scaling and benchmarks}
 \centering
-\includegraphics[height=0.37\textheight]{fig12_spin_MR_bias.pdf}\\[2pt]
-\begin{columns}[c]
-\column{0.48\textwidth}
-\centering\includegraphics[height=0.36\textheight]{fig14_spin_models.pdf}
-\column{0.5\textwidth}
-\small
-Hidden truth $\qS{\Delta}=20$\,meV, $\mu=15$\,meV:\\[2pt]
-\textbf{recovered} $\qS{\Delta}=19.3\,[17.4, 20.7]$\,meV,\\
-\phantom{\textbf{recovered} }$\mu=14.7\,[13.8, 16.0]$\,meV.\\[4pt]
-MR changes sign with bias and is independent of $N$: the fingerprint of an \alert{interface} (proximity) term.
-\end{columns}
-\end{frame}
+\includegraphics[width=0.70\linewidth]{spin_fig13_spin_scaling.pdf}
+\vspace{2mm}
 
-\begin{frame}{Layer-number scaling}
-\centering
-\includegraphics[height=0.47\textheight]{fig13_spin_scaling.pdf}
-\vspace{4pt}
-
-\footnotesize
-\begin{tabular}{lll}
+\fontsize{7.8}{9.5}\selectfont
+\begin{tabular}{@{}lll@{}}
 \toprule
-Benchmark & Published & BARISTA (95\,\% CI)\\
+\semibold Benchmark & \semibold Published or true & \semibold BARISTA (95\,\% interval)\\
 \midrule
-CrI$_3$ spin filter (Klein 2018) & $a\qS{\Delta\kappa}\approx0.64$--$0.78$ & $0.660\ [0.619, 0.713]$\\
-CrSBr spin hopping (Lin 2024) & $\Delta\qE{E_a}=20$ meV & $19.99\ [19.97, 20.01]$ meV\\
-F/I/N/I/F Fert--Jaffrès (synthetic) & $\gamma=0.6$, $\qS{l_{sf}}=300$ nm & $\gamma=0.75\ [0.54, 0.77]$, $\qS{l_{sf}}=365\ [284, 521]$ nm\\
+CrI$_3$ spin filter (Klein \emph{et al.}, Science 2018) & $a\qS{\Delta\kappa}\approx0.64$--$0.78$ & $0.660\ [0.619,\,0.713]$\\
+CrSBr spin-dependent hopping (Lin \emph{et al.}, PRR 2024) & $\Delta\qE{E_a}=20$\,meV & $19.99\ [19.97,\,20.01]$\,meV\\
+F/I/N/I/F Fert--Jaffrès (synthetic) & $\gamma=0.6$, $\qS{l_{sf}}=300$\,nm & $\gamma=0.75\ [0.54,\,0.77]$, $\qS{l_{sf}}=365\ [284,\,521]$\,nm\\
 \bottomrule
 \end{tabular}
 \end{frame}
 
-% =============================================================================
-\section{Reading published papers}
+% =====================================================================================================
+\divider{06}{Papers and benchmarks}{Reading a published paper end to end\\[1mm] Digitiser accuracy\\[1mm] Mock papers with a hidden mechanism\\[1mm] Eight published systems}
 
 \begin{frame}[fragile]{Paper reader: from PDF to mechanism}
-\begin{columns}[T]
-\column{0.55\textwidth}
+\begin{columns}[T,onlytextwidth]
+\column{0.56\textwidth}
 \small
 \begin{enumerate}
-  \item \textbf{Text}: title, DOI, abstract, captions; authors' claimed mechanism; reported parameters
-        ($\qE{\Phi}$, $\qN$, $\varepsilon_r$, \dots)
-  \item \textbf{Vector figures}: axis frames, tick labels (incl.\ $10^n$), calibration, every coloured series, legend
+  \item \textbf{Text}: title, DOI, abstract, captions, the authors' claimed mechanism and reported parameters
+  \item \textbf{Vector figures}: axis frames, tick labels including $10^n$, calibration, every coloured series and its legend
   \item \textbf{Raster figures}: frame detection, OCR of ticks and legends, colour clustering in Lab space
   \item \textbf{Analysis}: the full BARISTA pipeline on each digitised dataset
-  \item \textbf{Verdict vs authors}: \badge[okgreen]{AGREES} \badge{SAME FAMILY} \badge[cd]{DATA CANNOT DECIDE} \badge[bad]{DISAGREES}
+  \item \textbf{Verdict versus the authors}\\[0.8mm]
+        \badge[good]{AGREES}\enspace\badge{SAME FAMILY}\enspace\badge[warn]{DATA CANNOT DECIDE}\enspace\badge[bad]{DISAGREES}
 \end{enumerate}
-\begin{lstlisting}[language=bash]
+\vspace{1mm}
+\begin{lstlisting}[language=shell]
 barista paper article.pdf -o paper_out --bootstrap 200
 \end{lstlisting}
-\column{0.42\textwidth}
-\includegraphics[width=\linewidth]{digitised_figures.png}
+\column{0.40\textwidth}
+\centering\includegraphics[width=\linewidth]{digitised_figures.png}
+\src{Digitised series overlaid on the original figure.}
 \end{columns}
 \end{frame}
 
 \begin{frame}{Digitiser accuracy and mock-paper test}
-\begin{columns}[T]
+\begin{columns}[T,onlytextwidth]
 \column{0.47\textwidth}
-\small\textbf{Digitiser} (all series recovered)\\[3pt]
-\scriptsize
-\begin{tabular}{lcc}
+\begin{cardt}{Digitiser: median relative error in $\qI$}
+\fontsize{8}{10}\selectfont
+\begin{tabular}{@{}lcc@{}}
 \toprule
-Axes & vector & raster 300 dpi\\
+Axes & Vector PDF & Raster, 300 dpi\\
 \midrule
 log--log & $2\times10^{-5}$ & 0.6\,\%\\
 linear--log & $1.4\times10^{-4}$ & 0.7\,\%\\
 linear--linear & $1\times10^{-5}$ & 1.1\,\%\\
-log--log (dense) & $1.2\times10^{-4}$ & 1.9\,\%\\
+log--log, dense & $1.2\times10^{-4}$ & 1.9\,\%\\
 \bottomrule
-\end{tabular}\\[2pt]
-\scriptsize median relative error in $\qI$
-\vspace{6pt}
-
-\includegraphics[width=0.78\linewidth]{mock_schottky_raster_fig.png}
-\column{0.5\textwidth}
-\small\textbf{Mock papers} (hidden mechanism)\\[3pt]
-\scriptsize
-\begin{tabular}{lll}
+\end{tabular}\\[1mm]
+{\color{ink2}all series recovered in every figure}
+\end{cardt}
+\column{0.49\textwidth}
+\begin{cardt}{Mock papers with a hidden mechanism}
+\fontsize{8}{10}\selectfont
+\begin{tabular}{@{}lll@{}}
 \toprule
-Hidden & vector PDF & raster PDF\\
+Hidden & Vector PDF & Raster PDF\\
 \midrule
-Poole--Frenkel & \color{okgreen}agrees & \color{bad}disagrees$^{*}$\\
-Schottky & \color{okgreen}agrees & \color{okgreen}agrees\\
-Coherent & \color{okgreen}agrees & \color{cd}consistent$^{\dagger}$\\
-NN hopping & \color{okgreen}agrees & \color{okgreen}agrees\\
-SCLC trap & \color{okgreen}agrees & \color{cd}consistent$^{\dagger}$\\
+Poole--Frenkel & \badge[good]{AGREES} & \badge[bad]{DISAGREES}$^{*}$\\
+Schottky & \badge[good]{AGREES} & \badge[good]{AGREES}\\
+Coherent & \badge[good]{AGREES} & \badge[warn]{CANNOT DECIDE}$^{\dagger}$\\
+NN hopping & \badge[good]{AGREES} & \badge[good]{AGREES}\\
+SCLC, trap & \badge[good]{AGREES} & \badge[warn]{CANNOT DECIDE}$^{\dagger}$\\
 \bottomrule
-\end{tabular}\\[3pt]
-\scriptsize $^{*}$overlapping markers in a low-resolution image\\
-$^{\dagger}$correct mechanism among the candidates, but the digitised data cannot decide
+\end{tabular}\\[1mm]
+{\fontsize{6.8}{8.5}\selectfont\color{ink2}$^{*}$overlapping markers in a low-resolution image\quad $^{\dagger}$correct mechanism among the candidates}
+\end{cardt}
 \end{columns}
+\takeaway{Vector figures are read essentially exactly; raster figures to about 1--2\,\%.}
 \end{frame}
 
-% =============================================================================
-\section{Benchmarks against published results}
-
-\begin{frame}{Published systems: 8 of 8 correct}
-\tiny\renewcommand{\arraystretch}{1.05}
-\setlength{\tabcolsep}{4pt}\begin{tabular}{@{}lllll@{}}
+\begin{frame}{Eight published systems: all identified}
+\vspace{-1mm}
+\fontsize{7.4}{9}\selectfont
+\renewcommand{\arraystretch}{1.2}\setlength{\tabcolsep}{4.2pt}
+\begin{tabular}{@{}llllll@{}}
 \toprule
-Reference & System & Mechanism & Published & BARISTA (95\,\% CI)\\
+\semibold Reference & \semibold System & \semibold Mechanism & \semibold Published & \semibold BARISTA (95\,\%) & \\
 \midrule
-Lenzlinger \& Snow, JAP 1969 & Al/SiO$_2$/Si & FN tunnelling & $\qE{\Phi}=3.2$ eV & $3.216\ [3.172, 3.254]$\\
-Lee \emph{et al.}, APL 2011 & Au/hBN/Au & direct tunnelling & $\qE{\Phi}=3.07$ eV & $3.059\ [3.04, 3.10]$\\
-Wang \emph{et al.}, PRB 2003 & Au/alkanethiol/Au & direct tunnelling & $\qE{\Phi}=1.42$ eV & $1.426\ [1.414, 1.439]$\\
-Choi \emph{et al.}, JACS 2010 & ONI molecular wires & NN hopping & $\qE{E_a}=0.58$ eV & $0.580\ [0.579, 0.581]$\\
-Le Corre \emph{et al.}, ACS EL 2021 & MAPbBr$_3$ crystal & SCLC, discrete trap & $\log_{10}\qN=19.1$ & $19.1$\\
-Lin \emph{et al.}, PRR 2024 & graphite/CrSBr/graphite & VRH & $p=0.25$ & $0.2499\ [0.245, 0.254]$\\
-Xu \emph{et al.}, PRB 1995 & a-Si:H barriers & Glazman--Matveev & $N=2$ chains & identified\\
-Review, Table 8 & PF test case & Poole--Frenkel & $\qE{\Phi_t}=0.45$ eV, $\varepsilon_r=5$ & $0.4495$, $5.02$\\
+Lenzlinger \& Snow, JAP 1969 & Al/SiO$_2$/Si & \famdot{fTun}{Fowler--Nordheim} & $\qE{\Phi}=3.2$\,eV & $3.216\ [3.172,\,3.254]$ & \badge[good]{\checkmark}\\
+Lee \emph{et al.}, APL 2011 & Au/hBN/Au & \famdot{fTun}{direct tunnelling} & $\qE{\Phi}=3.07$\,eV & $3.059\ [3.04,\,3.10]$ & \badge[good]{\checkmark}\\
+Wang \emph{et al.}, PRB 2003 & Au/alkanethiol/Au & \famdot{fTun}{direct tunnelling} & $\qE{\Phi}=1.42$\,eV & $1.426\ [1.414,\,1.439]$ & \badge[good]{\checkmark}\\
+Choi \emph{et al.}, JACS 2010 & molecular wires & \famdot{fHop}{NN hopping} & $\qE{E_a}=0.58$\,eV & $0.580\ [0.579,\,0.581]$ & \badge[good]{\checkmark}\\
+Le Corre \emph{et al.}, ACS Energy Lett.\ 2021 & MAPbBr$_3$ & \famdot{fSCL}{SCLC, trap} & $\log_{10}\qN=19.1$ & $19.1$ & \badge[good]{\checkmark}\\
+Lin \emph{et al.}, PRR 2024 & graphite/CrSBr/graphite & \famdot{fHop}{VRH} & $p=0.25$ & $0.2499\ [0.245,\,0.254]$ & \badge[good]{\checkmark}\\
+Xu \emph{et al.}, PRB 1995 & a-Si:H barriers & \famdot{fTun}{Glazman--Matveev} & $N=2$ chains & identified & \badge[good]{\checkmark}\\
+Review, Table 8 & test case & \famdot{fEmi}{Poole--Frenkel} & $\qE{\Phi_t}=0.45$\,eV, $\varepsilon_r=5$ & $0.4495$, $5.02$ & \badge[good]{\checkmark}\\
 \bottomrule
 \end{tabular}
-\vspace{8pt}
-
-\small Every published parameter lies inside BARISTA's 95\,\% interval. Certainty grades are HIGH or VERY HIGH, except
-MODERATE for Choi (single bias window).\\ Reproduce with \texttt{python benchmarks/run\_benchmarks.py}.
+\takeaway{Every published parameter lies inside BARISTA's 95\,\% interval. Reproduce with \texttt{python benchmarks/run\_benchmarks.py}.}
 \end{frame}
 
-% =============================================================================
-\section{Outputs and performance}
+% =====================================================================================================
+\divider{07}{Using BARISTA}{Manuscript-ready outputs\\[1mm] One-node parallel runs on Ibex and Shaheen\\[1mm] Command line, GUI and Python\\[1mm] Limitations and roadmap}
 
 \begin{frame}[fragile]{Manuscript-ready outputs}
-\begin{columns}[T]
-\column{0.5\textwidth}
-\small
-\textbf{Figures} (PDF, SVG, PNG at 600 dpi)
+\begin{columns}[T,onlytextwidth]
+\column{0.48\textwidth}
+\begin{cardt}{Figures --- PDF, SVG, PNG at 600 dpi}
 \begin{itemize}
-  \item journal column widths: APS, Nature, ACS, IEEE, Elsevier, RSC
-  \item embedded TrueType fonts, constrained layout, panel labels
-  \item consistent colours: $\qT$ purple ramp, $\qd$ orange, $\qV$ green
-  \item 15 figure types: fits, linearisations, fingerprints, model comparison, regimes, predictions, certainty, spin, trap density
+  \item Journal column widths: APS, Nature, ACS, IEEE, Elsevier, RSC
+  \item Embedded TrueType fonts; any typeface via \texttt{Style(font=...)}
+  \item Consistent colours: $\qT$ purple, $\qd$ orange, $\qV$ green
+  \item 15 figure types: fits, linearisations, fingerprints, model comparison, channel maps, predictions, certainty, spin, trap density
 \end{itemize}
-\column{0.47\textwidth}
-\small
-\textbf{Tables and text}
+\end{cardt}
+\column{0.48\textwidth}
+\begin{cardt}{Tables and text}
 \begin{itemize}
-  \item \texttt{barista\_results.xlsx} + CSV for every table
-  \item \texttt{parameters.tex} (booktabs) for the manuscript
-  \item \texttt{methods.txt}: a ready Methods paragraph with references
+  \item \texttt{barista\_results.xlsx}, plus CSV for every table
+  \item \texttt{parameters.tex}: booktabs table for the manuscript
+  \item \texttt{methods.txt}: a Methods paragraph with references
   \item \texttt{report.html}: self-contained report
   \item \texttt{results.json} for scripting
 \end{itemize}
-\begin{lstlisting}[language=bash]
+\end{cardt}
+\vspace{1mm}
+\begin{lstlisting}[language=shell]
 barista analyze data/ --style nature
 \end{lstlisting}
 \end{columns}
+\takeaway{Figures go into the manuscript unchanged; every figure in this deck was produced by BARISTA.}
 \end{frame}
 
-\begin{frame}[fragile]{Fully parallel over one node --- Ibex and Shaheen}
-\begin{columns}[T]
-\column{0.42\textwidth}
+\begin{frame}[fragile]{Fully parallel over one node: Ibex and Shaheen}
+\begin{columns}[T,onlytextwidth]
+\column{0.41\textwidth}
 \small
 \begin{itemize}
-  \item Fits, cross-validation, two-channel models, bootstrap and profiles run in a process pool
-  \item Workers = cores allotted: honours \texttt{SLURM\_CPUS\_PER\_TASK}, CPU affinity, \texttt{BARISTA\_WORKERS}
+  \item Fits, cross-validation, two-channel screening, bootstrap and profiles run in a process pool
+  \item Worker count follows the cores allotted: \texttt{SLURM\_CPUS\_PER\_TASK}, CPU affinity or \texttt{BARISTA\_WORKERS}
   \item BLAS pinned to one thread per worker
-  \item Ibex: 40 cores; Shaheen III: 192 cores
-  \item Array jobs for many devices
+  \item Ibex node: 40 cores; Shaheen III node: 192 cores
+  \item Array jobs analyse many devices at once
 \end{itemize}
-\column{0.56\textwidth}
-\begin{lstlisting}[language=bash]
+\column{0.55\textwidth}
+\begin{lstlisting}[language=shell]
 #SBATCH --job-name=barista
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
@@ -597,30 +769,28 @@ conda activate barista
 export OMP_NUM_THREADS=1
 export BARISTA_WORKERS=$SLURM_CPUS_PER_TASK
 
-barista analyze "$1" --bootstrap 400 \
-        -o barista_$SLURM_JOB_ID
+barista analyze "$1" --bootstrap 400 -o barista_$SLURM_JOB_ID
 \end{lstlisting}
-\scriptsize Ready scripts in \texttt{tutorials/hpc/}: \texttt{ibex\_submit.sh}, \texttt{ibex\_array.sh},
-\texttt{shaheen\_submit.sh}, \texttt{shaheen\_array.sh}.
+\src{Ready scripts in \texttt{tutorials/hpc/}: \texttt{ibex\_submit.sh}, \texttt{ibex\_array.sh}, \texttt{shaheen\_submit.sh}, \texttt{shaheen\_array.sh}.}
 \end{columns}
 \end{frame}
 
 \begin{frame}[fragile]{Three ways to use it}
-\begin{columns}[T]
-\column{0.5\textwidth}
-\small\textbf{Command line}
-\begin{lstlisting}[language=bash]
+\begin{columns}[T,onlytextwidth]
+\column{0.49\textwidth}
+{\semibold\color{navy}Command line}
+\begin{lstlisting}[language=shell]
 pip install -e ".[all]"
-barista analyze iv_series.xlsx --area 100 \
-        --eps-r 9 --bootstrap 200
-barista spin mtj_P_AP.csv \
-        --system graphene/crsb/graphene --layers 4
+
+barista analyze iv_series.xlsx --area 100 --eps-r 9
+barista spin mtj.csv --system graphene/crsb/graphene \
+        --layers 4
 barista paper article.pdf
-barista mechanisms      # list all models
-barista gui             # Streamlit app
+barista mechanisms        # list every model
+barista gui               # Streamlit app
 \end{lstlisting}
 \column{0.47\textwidth}
-\small\textbf{Python}
+{\semibold\color{navy}Python}
 \begin{lstlisting}[language=Python]
 from barista import io, engine, uncertainty
 from barista.device import DeviceInfo
@@ -629,52 +799,86 @@ dev = DeviceInfo(area_um2=100, eps_r=9)
 ds  = io.load("iv_series.xlsx", dev)
 res = engine.analyze(ds, dev)
 res.certainty = uncertainty.assess(res, B=200)
+
 print(res.headline, res.confidence)
 print(res.traps.statement)
 \end{lstlisting}
-\scriptsize Seven tutorials (\texttt{tutorials/01--07}): blind test, your data, two channels, single-$\qT$ traps, read a paper, graphene/CrSb/graphene spin, certainty.
 \end{columns}
+\vspace{2mm}
+\begin{card}
+\semibold Seven tutorials\enspace\normalfont\color{ink2}blind test \textperiodcentered{} your own data \textperiodcentered{} two channels \textperiodcentered{} single-temperature traps \textperiodcentered{} reading a paper \textperiodcentered{} graphene/CrSb/graphene spin \textperiodcentered{} certainty
+\end{card}
 \end{frame}
 
-% =============================================================================
-\begin{frame}{Limitations and next steps}
-\begin{columns}[T]
-\column{0.5\textwidth}
-\begin{alertblock}{Limitations}
-\small
+\begin{frame}{Limitations and roadmap}
+\begin{columns}[T,onlytextwidth]
+\column{0.48\textwidth}
+\begin{tcolorbox}[enhanced,colback=bad!4,colframe=bad!4,boxrule=0pt,arc=2mm,left=3mm,right=3mm,top=1.5mm,bottom=2mm,
+   title={\semibold Limitations},coltitle=bad!85!black,colbacktitle=bad!4,fonttitle=\small,fontupper=\small,toptitle=1.2mm]
 \begin{itemize}
-  \item Bias-only data cannot identify a mechanism uniquely; BARISTA says so.
-  \item SCLC trap densities scale with $\varepsilon_r$; TAT densities with $\nu_0$ --- supply them when known.
-  \item Raster figures with overlapping markers can mislead the digitiser.
-  \item Spin models assume collinear magnetisation (P/AP or angle).
+  \item Bias-only data cannot identify a mechanism uniquely --- BARISTA says so
+  \item SCLC trap densities scale with $\varepsilon_r$, trap-assisted ones with $\nu_0$: supply them when known
+  \item Overlapping markers in raster figures can mislead the digitiser
+  \item Spin models assume collinear magnetisation (P/AP or angle)
 \end{itemize}
-\end{alertblock}
-\column{0.47\textwidth}
-\begin{exampleblock}{Next}
-\small
+\end{tcolorbox}
+\column{0.48\textwidth}
+\begin{tcolorbox}[enhanced,colback=good!5,colframe=good!5,boxrule=0pt,arc=2mm,left=3mm,right=3mm,top=1.5mm,bottom=2mm,
+   title={\semibold Roadmap},coltitle=good!80!black,colbacktitle=good!5,fonttitle=\small,fontupper=\small,toptitle=1.2mm]
 \begin{itemize}
-  \item Benchmark on more user-supplied papers with raw data
+  \item Benchmarks on more papers with raw data
   \item Noise (RTN) and impedance inputs for trap spectroscopy
-  \item Gate-dependent data (field-effect barriers)
-  \item Bayesian evidence via nested sampling as an option
+  \item Gate-dependent data for field-effect barriers
+  \item Bayesian evidence by nested sampling, as an option
 \end{itemize}
-\end{exampleblock}
+\end{tcolorbox}
 \end{columns}
 \end{frame}
 
+\setsection{}{Summary}
 \begin{frame}{Summary}
-\begin{itemize}
-  \item \textbf{One input, one verdict}: any file or paper $\to$ mechanism, parameters and how certain both are.
-  \item \textbf{Physics first}: 13 mechanisms with global $\qI(\qV,\qT,\qd)$ fits, model-free fingerprints, plausibility checks.
-  \item \textbf{Statistics that answer ``how sure?''}: bootstrap selection probability, profile likelihood, Vuong tests.
-  \item \textbf{Trap density from I--V}: $\qN$ and its energy for every trap-related mechanism, or a bound when no traps are needed.
-  \item \textbf{Spin}: spin filtering, spin hopping, interface proximity polarisation (graphene/CrSb/graphene), Valet--Fert.
-  \item \textbf{Validated}: 8/8 published systems, 4/4 spin benchmarks, digitiser errors $\leq$\,2\,\%.
-  \item \textbf{Ready to publish and to scale}: journal-style figures, \LaTeX\ tables, one-node parallel on Ibex/Shaheen.
-\end{itemize}
-\vfill
-\centering
-\href{https://github.com/Gokaran-Shukla/barista}{\texttt{github.com/Gokaran-Shukla/barista}} \quad MIT licence
+\vspace{1mm}
+\begin{columns}[T,onlytextwidth]
+\column{0.485\textwidth}
+\begin{cardt}{Physics first}
+13 mechanisms fitted globally in $\qV$, $\qT$ and $\qd$, with model-free fingerprints and plausibility checks.
+\end{cardt}
+\vspace{1mm}
+\begin{cardt}{Certainty you can quote}
+Bootstrap selection probabilities, profile-likelihood intervals, Vuong tests and a certainty grade.
+\end{cardt}
+\vspace{1mm}
+\begin{cardt}{Traps and spin}
+Trap density and energy from I--V data; spin filtering, spin hopping, interface polarisation and Valet--Fert.
+\end{cardt}
+\column{0.485\textwidth}
+\begin{cardt}{Validated}
+8/8 published systems, 4/4 spin benchmarks, digitiser errors ${\leq}\,2$\,\%.
+\end{cardt}
+\vspace{1mm}
+\begin{cardt}{Published papers as input}
+Reads a PDF, digitises the figures and tests the authors' claimed mechanism.
+\end{cardt}
+\vspace{1mm}
+\begin{cardt}{Ready to publish and to scale}
+Journal-style figures, \LaTeX{} tables, Methods text; one-node parallel on Ibex and Shaheen.
+\end{cardt}
+\end{columns}
 \end{frame}
+
+% ------------------------------------------------------------------------------------- closing
+{\setbeamertemplate{footline}{}
+\begin{frame}[plain]
+\begin{tikzpicture}[remember picture,overlay]
+  \fill[navy] (current page.south west) rectangle (current page.north east);
+  \node[anchor=west,inner sep=0] at ($(current page.west)+(13mm,8mm)$)
+    {\display\fontsize{34}{36}\selectfont\color{white}Thank you};
+  \draw[acc,line width=1.2pt] ($(current page.west)+(13mm,-2mm)$) -- ++(12mm,0);
+  \node[anchor=north west,inner sep=0,text width=120mm] at ($(current page.west)+(13mm,-6mm)$)
+    {\fontsize{10}{14}\selectfont\color{white!80}
+     \semibold github.com/Gokaran-Shukla/barista\\[1mm]
+     \normalfont\fontsize{8.5}{12}\selectfont\color{white!60}MIT licence \enspace\textperiodcentered\enspace Gokaran Shukla, KAUST \enspace\textperiodcentered\enspace gokaran.shukla@kaust.edu.sa};
+\end{tikzpicture}
+\end{frame}}
 
 \end{document}

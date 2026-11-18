@@ -39,6 +39,11 @@ def spin_tables(sr):
     return out
 
 
+SPIN_SHORT = {"julliere": "Jullière spin valve", "spin_filter": "layered spin filter",
+              "spin_hopping": "spin-dependent hopping", "proximity": "interface proximity polarisation",
+              "valet_fert": "Valet–Fert drift–diffusion"}
+
+
 def spin_figures(sr, outdir, style: Style = None):
     style = style or Style()
     tab = sr.table
@@ -105,7 +110,7 @@ def spin_figures(sr, outdir, style: Style = None):
         keys = sr.ranking
         y = np.arange(len(keys))
         ax.barh(y, [100 * sr.probs[k] for k in keys], color=[ACCENT if k == sr.best else OTHER for k in keys], height=0.6)
-        ax.set_yticks(y); ax.set_yticklabels([MODELS[k].name.split("(")[0].strip()[:34] for k in keys],
+        ax.set_yticks(y); ax.set_yticklabels([SPIN_SHORT.get(k, MODELS[k].name.split("(")[0].strip()) for k in keys],
                                              fontsize=style.fs - 2.5)
         ax.tick_params(axis="y", which="both", left=False, right=False); ax.invert_yaxis()
         ax.set_xlabel("support (%)"); ax.set_xlim(0, 105)

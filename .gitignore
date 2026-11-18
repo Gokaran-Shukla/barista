@@ -14,3 +14,6 @@ barista_output/
 *.vrb
 *.fls
 *.fdb_latexmk
+docs/presentation/fonts/
+docs/presentation/_build_figs/
+*.xdv

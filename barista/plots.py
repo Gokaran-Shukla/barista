@@ -61,12 +61,19 @@ class Style:
         self.formats = tuple(formats)
 
     def rc(self):
-        fam = "sans-serif" if self.font == "sans" else "serif"
+        named = self.font not in ("sans", "serif")          # e.g. Style(font="Inter") to match slides
+        fam = "serif" if self.font == "serif" else "sans-serif"
+        extra = {}
+        if named:
+            extra = {"mathtext.fontset": "custom", "mathtext.rm": self.font, "mathtext.it": f"{self.font}:italic",
+                     "mathtext.bf": f"{self.font}:bold", "mathtext.sf": self.font,
+                     "mathtext.fallback": "stixsans"}
         return {
-            "font.family": fam,
-            "font.sans-serif": SANS,
+            "font.family": [self.font, "DejaVu Sans"] if named else fam,     # per-glyph fallback (∝, ≈ …)
+            "font.sans-serif": ([self.font] if named else []) + SANS,
             "font.serif": SERIF,
-            "mathtext.fontset": "dejavusans" if self.font == "sans" else "dejavuserif",
+            "mathtext.fontset": "dejavusans" if self.font != "serif" else "dejavuserif",
+            **extra,
             "mathtext.default": "it",
             "font.size": self.fs,
             "axes.labelsize": self.fs,
@@ -393,7 +400,7 @@ def fig_linearised(res, style, outdir, name="fig2_linearised"):
             yref = conv(sel[-1].I.values).min()
             for s, lab in [(1, "1"), (2, "2")]:
                 ax.loglog(V0, yref * (V0 / V0[0]) ** s, ":", color=INK2, lw=0.6)
-                ax.text(V0[-1], yref * (V0[-1] / V0[0]) ** s, f" ∝ $V^{lab}$", fontsize=style.fs - 2, color=INK2,
+                ax.text(V0[-1], yref * (V0[-1] / V0[0]) ** s, f" $\\propto V^{lab}$", fontsize=style.fs - 2, color=INK2,
                         va="center")
         ax.set_xlabel(xl); ax.set_ylabel(yl)
         ax.text(0.97, 0.04, rf"$d$ = {dmin:g} nm", transform=ax.transAxes, ha="right", va="bottom",
@@ -582,25 +589,34 @@ def fig_models(res, style, outdir, name="fig4_model_comparison"):
     with style.ctx():
         fig, axes = plt.subplots(1, 2, figsize=(style.double, 2.9), gridspec_kw={"width_ratios": [1.15, 1]})
         ax = axes[0]
+        # when two parallel channels are assigned, that model is the reference and is shown first
+        mixed = res.mixed if (res.mixed and res.assigned_key == res.mixed["key"]) else None
+        ref_aic = mixed["fit"].aic if mixed else min(a.fit.aic for a in ranked)
         labels = [SHORT.get(a.key, a.key) for a in ranked]
-        vals = [max(a.d_aic, 0.0) + 1 for a in ranked]
-        cols = [ACCENT if a.key == res.best.key else ("#e34948" if a.verdict == "EXCLUDED" else OTHER) for a in ranked]
-        y = np.arange(len(ranked))
+        vals = [max(a.fit.aic - ref_aic, 0.0) + 1 for a in ranked]
+        cols = [ACCENT if (a.key == res.best.key and not mixed) else ("#e34948" if a.verdict == "EXCLUDED" else OTHER)
+                for a in ranked]
+        notes = [f"{100 * a.prob:.0f} %" if (a.prob >= 0.005 and not mixed) else "" for a in ranked]
+        if mixed:
+            labels = [" ∥ ".join(SHORT.get(k, k) for k in (mixed["a"], mixed["b"]))] + labels
+            vals = [1.0] + vals
+            cols = [ACCENT] + cols
+            notes = ["assigned"] + notes
+        y = np.arange(len(labels))
         ax.barh(y, vals, color=cols, height=0.62)
         ax.set_xscale("log")
         ax.set_yticks(y); ax.set_yticklabels(labels, fontsize=style.fs - 2)
         ax.tick_params(axis="y", which="both", left=False, right=False)
         ax.invert_yaxis()
         ax.axvline(11, color=INK2, ls=":", lw=0.6)
-        ax.set_xlabel(r"$\Delta$AIC + 1")
-        for yi, a in zip(y, ranked):
-            ax.text(vals[yi] * 1.15, yi, f"{100 * a.prob:.0f} %" if a.prob >= 0.005 else "", va="center",
-                    fontsize=style.fs - 2.5, color=INK2)
+        ax.set_xlabel(r"$\Delta$AIC + 1" + (" (vs two-channel model)" if mixed else ""))
+        for yi in y:
+            ax.text(vals[yi] * 1.15, yi, notes[yi], va="center", fontsize=style.fs - 2.5, color=INK2)
         panel_label(ax, 0, style)
-        # residuals of best model
+        # residuals of the assigned model
         ax = axes[1]
         data = res.data
-        r = data.lnI - res.best.fit.lnI_fit
+        r = data.lnI - (mixed["fit"].lnI_fit if mixed else res.best.fit.lnI_fit)
         tcol, Ts = _tcolor(list(np.unique(data.T)))
         for T in Ts:
             m = data.T == T
@@ -832,12 +848,24 @@ def fig_traps(res, style, outdir, name="fig15_trap_density"):
 # ---------------------------------------------------------------------------
 # Certainty figures (uncertainty analytics)
 # ---------------------------------------------------------------------------
+def _no_offset(ax):
+    """Plain tick labels (no '+2.3×10¹' offset text) — clearer for parameter axes."""
+    for axis in (ax.xaxis, ax.yaxis):
+        fmt = axis.get_major_formatter()
+        if isinstance(fmt, matplotlib.ticker.ScalarFormatter):
+            fmt.set_useOffset(False)
+
+
 def _pretty(pname):
     from .report_text import SYMBOLS
     base = pname.split(".")[-1]
     tex = SYMBOLS.get(base, (base, base.replace("_", r"\_"), "", "", None))[1]
     unit = SYMBOLS.get(base, (None, None, "", "", None))[3]
     ch = f" ({pname[0].upper()})" if pname.startswith(("a.", "b.")) else ""
+    if base.startswith("log10_"):              # axes show the fitted log10 value in the model's own (SI) unit
+        from .models import REGISTRY
+        u = next((q.unit for m in REGISTRY.values() for q in m.params if q.name == base), "")
+        return rf"$\log_{{10}}\,{tex}${ch}" + (f" ({u})" if u else "")
     return rf"${tex}${ch}" + (f" ({unit})" if unit else "")
 
 
@@ -918,11 +946,13 @@ def fig_param_corner(res, cert, style, outdir, name="fig9_parameter_uncertainty"
                 elif i != j:
                     ax.set_yticklabels([])
                 ax.tick_params(labelsize=style.fs - 2.5)
-                ax.xaxis.get_offset_text().set_fontsize(style.fs - 3)
+                _no_offset(ax)
         fig.legend(handles=[plt.Line2D([], [], color=INK, lw=0.8, label="estimate"),
                             plt.Line2D([], [], color=ACCENT, ls="--", lw=0.7, label="bootstrap 95 %"),
                             plt.Line2D([], [], color=C_FIT2, ls=":", lw=0.8, label="profile 95 %")],
                    loc="outside upper center", ncol=3, fontsize=style.fs - 2)
+        for a in fig.axes:
+            _no_offset(a)
         return _save(fig, outdir, name, style)
 
 
@@ -945,7 +975,7 @@ def fig_profiles(res, cert, style, outdir, name="fig10_profile_likelihood"):
             ax.set_xlabel(_pretty(p))
             if i == 0:
                 ax.set_ylabel(r"$\Delta\chi^2$")
-            ax.xaxis.get_offset_text().set_fontsize(style.fs - 3)
+            _no_offset(ax)
             panel_label(ax, i, style)
         return _save(fig, outdir, name, style)
 
