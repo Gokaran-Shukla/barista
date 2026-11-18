@@ -32,6 +32,7 @@
 \usetikzlibrary{arrows.meta,positioning,calc,decorations.pathmorphing,fit}
 \usepackage[most]{tcolorbox}
 \usepackage{listings}
+\usepackage[nolinks]{qrcode}
 \graphicspath{{figs/}}
 
 % ---------------------------------------------------------------- palette
@@ -878,6 +879,10 @@ Journal-style figures, \LaTeX{} tables, Methods text; one-node parallel on Ibex 
     {\fontsize{10}{14}\selectfont\color{white!80}
      \semibold github.com/Gokaran-Shukla/barista\\[1mm]
      \normalfont\fontsize{8.5}{12}\selectfont\color{white!60}MIT licence \enspace\textperiodcentered\enspace Gokaran Shukla, KAUST \enspace\textperiodcentered\enspace gokaran.shukla@kaust.edu.sa};
+  % QR code to the repository (white quiet zone for reliable scanning)
+  \node[fill=white,rounded corners=2.5mm,inner sep=3.2mm,anchor=east] (qr) at ($(current page.east)+(-16mm,3mm)$)
+    {\href{https://github.com/Gokaran-Shukla/barista}{\qrcode[height=36mm,level=M]{https://github.com/Gokaran-Shukla/barista}}};
+  \node[anchor=north,font=\fontsize{7.5}{9}\selectfont,text=white!65] at ($(qr.south)+(0,-2mm)$) {Scan to open the repository};
 \end{tikzpicture}
 \end{frame}}
 
