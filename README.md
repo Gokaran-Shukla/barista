@@ -1,5 +1,7 @@
 # BARISTA
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.24334682.svg)](https://doi.org/10.5281/zenodo.24334682)
+
 **BARrier Inference of Sequential, Tunnelling & Activated transport**
 
 BARISTA works out *which* charge-transport mechanism carries the current across a thin insulating,
@@ -288,6 +290,26 @@ The relative support is softmax(S). A violated *necessary* signature (Table 9) o
 parameter marks a mechanism EXCLUDED. "IDENTIFIED" requires data along at least two independent
 axes (bias plus temperature and/or thickness) and a fit at the noise level. With bias-only data,
 BARISTA will not claim more than "MOST LIKELY", and it tells you which measurement is missing.
+
+## Citing BARISTA
+
+If BARISTA helps your work, please cite the software:
+
+> G. Shukla, *BARISTA: BARrier Inference of Sequential, Tunnelling and Activated transport*, version 0.3.0 (2026). Zenodo. https://doi.org/10.5281/zenodo.24334682
+
+```bibtex
+@software{shukla_barista_2026,
+  author    = {Shukla, Gokaran},
+  title     = {BARISTA: BARrier Inference of Sequential, Tunnelling and Activated transport},
+  version   = {0.3.0},
+  year      = {2026},
+  publisher = {Zenodo},
+  doi       = {10.5281/zenodo.24334682},
+  url       = {https://github.com/Gokaran-Shukla/barista}
+}
+```
+
+GitHub's **"Cite this repository"** button (from `CITATION.cff`) gives the same reference in APA and BibTeX.
 
 ## Licence
 
