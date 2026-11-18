@@ -1,0 +1,31 @@
+{
+  "title": "BARISTA: BARrier Inference of Sequential, Tunnelling and Activated transport",
+  "upload_type": "software",
+  "description": "BARISTA identifies the charge-transport mechanism across thin insulating, semiconducting, molecular or magnetic barriers from current-voltage data at one or more temperatures and thicknesses. It fits tunnelling, trap-assisted, hopping, emission and space-charge-limited mechanisms globally, ranks them with information criteria, cross-validation and plausibility checks, quantifies uncertainty by bootstrap and profile likelihood, extracts trap densities and energies, covers spin-dependent transport, and writes manuscript-ready figures, tables and Methods text.",
+  "creators": [
+    {
+      "name": "Shukla, Gokaran",
+      "orcid": "0000-0001-9332-3332",
+      "affiliation": "King Abdullah University of Science and Technology (KAUST)"
+    }
+  ],
+  "keywords": [
+    "charge transport",
+    "tunnelling",
+    "hopping",
+    "space-charge-limited current",
+    "Poole-Frenkel",
+    "Schottky emission",
+    "thin films",
+    "magnetic tunnel junctions",
+    "model selection"
+  ],
+  "related_identifiers": [
+    {
+      "identifier": "https://github.com/Gokaran-Shukla/barista",
+      "relation": "isSupplementTo",
+      "scheme": "url"
+    }
+  ],
+  "license": "MIT"
+}
