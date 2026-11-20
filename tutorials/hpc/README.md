@@ -1,5 +1,9 @@
 # Running BARISTA on Ibex and Shaheen III
 
+<!-- gs-watermark -->
+> **© 2026 Gokaran Shukla** · part of [barista](https://github.com/Gokaran-Shukla/barista) · MIT License — any reuse must keep this copyright notice and credit the author.
+
+
 BARISTA runs on **a single node** and uses every core you request. The 13 global mechanism fits,
 the cross-validation refits, the two-channel screening and refinement, and the series-resistance
 test are all spread over a process pool:

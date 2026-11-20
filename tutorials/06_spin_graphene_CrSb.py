@@ -1,3 +1,4 @@
+# © 2026 Gokaran Shukla · github.com/Gokaran-Shukla/barista · MIT License  (gs-watermark)
 """Tutorial 6 — spin-dependent transport in graphene/CrSb/graphene.
 
 The two graphene electrodes acquire a proximity exchange splitting from CrSb, so their interface spin

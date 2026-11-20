@@ -1,3 +1,4 @@
+# © 2026 Gokaran Shukla · github.com/Gokaran-Shukla/barista · MIT License  (gs-watermark)
 """Tutorial 5 — read a published paper.
 
 Pass any paper PDF (or a PNG/JPG of a figure). BARISTA extracts the text claims and reported parameters,

@@ -1,3 +1,4 @@
+# © 2026 Gokaran Shukla · github.com/Gokaran-Shukla/barista · MIT License  (gs-watermark)
 """Tutorial 2 — your own data.
 
 Point `load` at files, folders or archives in any format: csv/txt/dat (any delimiter,

@@ -1,3 +1,4 @@
+# © 2026 Gokaran Shukla · github.com/Gokaran-Shukla/barista · MIT License  (gs-watermark)
 """Tutorial 3 — two channels in parallel.
 
 At low temperature (and in the thinnest barrier) coherent tunnelling dominates; in the

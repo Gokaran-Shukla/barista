@@ -1,3 +1,4 @@
+# © 2026 Gokaran Shukla · github.com/Gokaran-Shukla/barista · MIT License  (gs-watermark)
 """Tutorial 4 — why one curve is not enough (review Sec. XVIII, Fig. 7).
 
 The same Poole–Frenkel device is analysed (i) from a single I(V) curve over a narrow bias

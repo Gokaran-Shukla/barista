@@ -1,5 +1,9 @@
 # BARISTA tutorials
 
+<!-- gs-watermark -->
+> **© 2026 Gokaran Shukla** · part of [barista](https://github.com/Gokaran-Shukla/barista) · MIT License — any reuse must keep this copyright notice and credit the author.
+
+
 | file | what you learn |
 |---|---|
 | `01_blind_test.py` | generate data from a hidden mechanism (the review's Table 8 Poole–Frenkel case) and let BARISTA find it |

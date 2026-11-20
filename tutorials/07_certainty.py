@@ -1,3 +1,4 @@
+# © 2026 Gokaran Shukla · github.com/Gokaran-Shukla/barista · MIT License  (gs-watermark)
 """Tutorial 7 — how certain is the mechanism? Bootstrap, profile likelihood, stability and residual tests."""
 from barista import synth, io, engine, uncertainty
 from barista.export import export_all

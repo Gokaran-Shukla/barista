@@ -1,3 +1,4 @@
+# © 2026 Gokaran Shukla · github.com/Gokaran-Shukla/barista · MIT License  (gs-watermark)
 """Tutorial 1 — blind test: can BARISTA find a hidden mechanism?
 
 Synthetic data are generated from a Poole–Frenkel law with the parameters of Table 8 of the review
