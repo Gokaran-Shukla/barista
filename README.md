@@ -1,5 +1,7 @@
 # BARISTA
 
+📘 **Complete manual (PDF):** [docs/barista_manual.pdf](docs/barista_manual.pdf) — documentation, tutorials and quizzes in one file.
+
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.24334682.svg)](https://doi.org/10.5281/zenodo.24334682)
 
 **BARrier Inference of Sequential, Tunnelling & Activated transport**
